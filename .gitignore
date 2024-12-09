@@ -1,2 +1,4 @@
 # ignore all .dat in all directories
 *.dat
+# all rendering files
+*_files/
