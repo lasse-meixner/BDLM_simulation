@@ -15,16 +15,22 @@ load_src_files()
 
 # Function to fit Hahn model ----
 fit_BLRs <- function(data) {
-  # first stage
-  fitted_ps <- BLR(y = data$A, XR = data$X)
-  # naive 
-  naive <- BLR(y = data$Y, XR = data$X, XF = as.matrix(data$A))
-  # Hahn second stage
-  hahn <- BLR(y = data$Y, XF = cbind(data$A - fitted_ps$yHat), XR = data$X)
-  # Linero second stage
-  linero <- BLR(y = data$Y, XF = cbind(data$A, fitted_ps$yHat), XR = data$X)
+  # auxiliary function: since BLR doesn't allow control of low-level cat statements (typical bs R package SE), I suppress this during function execution
+  suppress_output <- function(expr) {
+    suppressMessages(
+      invisible(capture.output(result <- eval(expr)))
+    )
+    return(result)
+  }
 
-  list(naive = naive, hahn = hahn, linero = linero)
+  # Suppress output from BLR calls
+  fitted_ps <- suppress_output(quote(BLR(y = data$A, XR = data$X)))
+  naive <- suppress_output(quote(BLR(y = data$Y, XR = data$X, XF = as.matrix(data$A))))
+  hahn <- suppress_output(quote(BLR(y = data$Y, XF = cbind(data$A - fitted_ps$yHat), XR = data$X)))
+  linero <- suppress_output(quote(BLR(y = data$Y, XF = cbind(data$A, fitted_ps$yHat), XR = data$X)))
+
+  # Ensure the return object is not printed
+  invisible(list(naive = naive, hahn = hahn, linero = linero))
 }
 
 # Function to extract results for Hahn and Linero models ----
