@@ -1,0 +1,2 @@
+# ignore all .dat in all directories
+*.dat

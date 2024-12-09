@@ -1,0 +1,1 @@
+For an overview of the structure of this directory and a comprehensive demo see `simulation_demo.qmd`.
