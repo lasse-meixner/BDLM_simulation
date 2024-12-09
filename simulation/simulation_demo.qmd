@@ -1,6 +1,6 @@
 ---
 title: "Simulation Demo"
-author: "Your Name"
+author: "Lasse vdHeydt"
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 output: html_document
 ---
