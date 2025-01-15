@@ -53,7 +53,7 @@ fit_random <- fit_model_dml_b2(data_random)
 ### Extracting results
 
 ```{r}
-extract_results_dml_b2(fit_random, data_random$gamma, list(setting = "random", N = 200, P = 100, sigma = 1))
+extract_results_dml(fit_random, data_random$gamma, type = "DML_B2", list(setting = "random", N = 200, P = 100, sigma = 1))
 ```
 
 ### Fitting the BLRs by Hahn and Linero
@@ -71,8 +71,12 @@ extract_results_blr(fit_blrs$naive, data_random$gamma, "naive", list(setting = "
 
 ```{r}
 # extracting from all 3 at once
-results_list <- lapply(names(fit_blrs), function(method_name) {
-  extract_results_blr(fit_blrs[[method_name]], gamma = data_random$gamma, method_name = method_name, additional_results_info = list(setting = "random", N = 200, P = 100, sigma = 1))
+results_list <- lapply(names(fit_blrs), function(model_name){
+  if (model_name %in% c("FDML_full", "FDML_split")){
+    extract_results_lm(fit_blrs[[model_name]], data_random$gamma, model_name, list(setting = "random", N = 200, P = 100, sigma = 1))
+  } else {
+    extract_results_blr(fit_blrs[[model_name]], data_random$gamma, model_name, list(setting = "random", N = 200, P = 100, sigma = 1))
+  }
 })
 
 results <- do.call(rbind, results_list)
@@ -111,7 +115,7 @@ For much larger settings, the simulation study can be run in a parrallelized fas
 Here I run the same simulation as above, but in parallel with a batch size of 2 and 2 cores.
 
 ```{r}
-results_parallel <- run_simulation_parallel(model_type = c("BDML", "BLRs"), N = 200, P = 100, setting = "random", sigma = 1, simulation_size = 3, batch_size = 2, n_cores = 2)
+results_parallel <- run_simulation_parallel(model_type = c("BDML", "BLRs"), N = 200, P = 100, setting = "fixed", sigma = c(1,2,4), simulation_size = 3, batch_size = 4, n_cores = 4)
 
 ## Summarize results ----
 results_parallel_table <- results_parallel |>
@@ -122,4 +126,12 @@ results_parallel_table <- results_parallel |>
 
 ## print results table
 results_parallel_table |> knitr::kable()
+```
+
+And plotting the results
+
+```{r}
+source("results_plotting_source.R")
+
+get_combined_plots(results_parallel, save = TRUE)
 ```
