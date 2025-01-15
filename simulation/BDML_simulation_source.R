@@ -2,8 +2,6 @@
 library(cmdstanr)
 library(tidyverse)
 
-## requires set working directory to "programs/Linero2023/BDLM_clean"
-
 ## source data generation
 source("generate_data_source.R")
 
@@ -16,7 +14,7 @@ load_src_files()
 
 ## Compile the Stan models ----
 model_dml_b2 <- cmdstan_model("../dml_b2.stan")
-
+model_dml_r2d2 <- cmdstan_model("../dml_r2d2.stan")
 
 ## Function to fit model ----
 fit_model_dml_b2 <- function(data) {
@@ -33,8 +31,23 @@ fit_model_dml_b2 <- function(data) {
   )
 }
 
+## Function to fit model R2D2 ----
+fit_model_dml_r2d2 <- function(data) {
+  N <- nrow(data$X)
+  P <- ncol(data$X)
+
+  model_dml_r2d2$sample(
+    data = list(J = P, N = N, x = data$X, y = cbind(data$Y, data$A), b = 0.5),
+    chains = 1,
+    parallel_chains = 1,
+    refresh = 0,
+    show_messages = FALSE,
+    show_exceptions = FALSE
+  )
+}
+
 ## Function to extract results ----
-extract_results_dml_b2 <- function(fit, gamma, additional_results_info) {
+extract_results_dml <- function(fit, gamma, type, additional_results_info) {
 #' Extract results from the DML-B2 model fit
 #'
 #' @param fit A fitted model object from which to extract results.
@@ -72,7 +85,7 @@ extract_results_dml_b2 <- function(fit, gamma, additional_results_info) {
     UCL = UCL,
     catch = catch,
     interval_width = interval_width,
-    Method = "DML-B2"
+    Method = type
   )
 
   # Append additional_results_info (setting parameters) to pass through for downstream analysis
@@ -87,5 +100,9 @@ sim_iter_BDML <- function(N, P, setting, sigma, seed = sample.int(.Machine$integ
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
   fit <- fit_model_dml_b2(data)
-  res <- extract_results_dml_b2(fit, data$gamma, additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  fit_r2d2 <- fit_model_dml_r2d2(data)
+  res <- extract_results_dml(fit, data$gamma, type = "DML_B2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res_r2d2 <- extract_results_dml(fit_r2d2, data$gamma, type = "BDML_R2D2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+
+  do.call(rbind, list(res, res_r2d2))
 }
