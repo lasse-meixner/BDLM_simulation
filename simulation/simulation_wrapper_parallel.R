@@ -13,7 +13,7 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     #' @param P Integer vector specifying the number of predictors for the simulations.
     #' @param setting Character vector specifying different settings for the simulations.
     #' @param sigma Numeric vector specifying the noise levels for the simulations.
-    #' @param simulation_size Integer specifying the total number of simulations to run.
+    #' @param simulation_size Integer specifying the total number of simulations to run per setting.
     #' @param batch_size Integer specifying the number of simulations to run in each batch. Default is 64.
     #' @param n_cores Integer specifying the number of CPU cores to use for parallel execution. Default is 4.
     #' @return A list of data frames, each containing the results of a batch of simulations.
@@ -27,7 +27,18 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
                                 P = P, 
                                 setting = setting, 
                                 sigma = sigma, 
-                                seed = seeds)
+                                seed = seeds,
+                                stringsAsFactors = FALSE)
+
+    # init print
+    print(paste0(
+        "Running a total of ", 
+        (nrow(sim_settings) / length(model_type)),
+        "simulations for each model, with # BLRs: ", 
+        sum(sim_settings$model_type == "BLRs")*5, 
+        " and # BDML: ", 
+        sum(sim_settings$model_type == "BDML")*2, 
+        " on ", n_cores, " cores.\n"))
     
     # Determine the number of batches
     n_batches <- ceiling(nrow(sim_settings) / batch_size)
@@ -73,5 +84,9 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     
     # Combine all results
     results <- do.call(rbind, results_list)
+
+    ## save results to csv
+    write.csv(results, paste0("results/results_", format(Sys.time(), "%Y%m%d%H%M"), ".csv"), row.names = FALSE)
+
     return(results)
 }
