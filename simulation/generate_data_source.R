@@ -99,6 +99,9 @@ generate_data <- function(N, P, setting, sigma) {
     data$Y <- data$gamma * data$A + data$w * data$A_hat + data$mu_hat + sigma * rnorm(N)
   }
 
+  # save sigma
+  data$sigma <- sigma
+
   # return data
   data
 }
