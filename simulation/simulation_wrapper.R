@@ -51,6 +51,9 @@ run_simulation <- function(model_type, N, P, setting, sigma, simulation_size) {
   ## Filter and Combine all results ----
   results_list <- Filter(Negate(is.null), results_list)
   results <- do.call(rbind, results_list)
+
+  ## save results to csv
+  write.csv(results, paste0("results/results_", format(Sys.time(), "%Y%m%d%H%M"), ".csv"), row.names = FALSE)
   
   return(results)
 }
