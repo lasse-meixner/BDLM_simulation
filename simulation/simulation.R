@@ -13,8 +13,8 @@ results <- run_simulation_parallel(
   setting = "fixed",
   sigma = c(1, 2, 4),
   simulation_size = 200,
-  seeds = seeds
-)
+  batch_size = 4, 
+  n_cores = 2) 
 
 ## Summarize results ----
 results_table <- make_results_table(results) # from results_plotting_source.R
