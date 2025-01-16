@@ -30,7 +30,7 @@ source("simulation_wrapper_parallel.R")
 Here I generate data from the "random" setting with 200 samples, 100 features, and a fairly low noise level in the outcome equation. For a full overview of the settings, see the docstring of `generate_data` in the `simulation_source.R` file.
 
 ```{r}
-set.seed(1234)
+set.seed(12345)
 data_random <- generate_data(setting = "random", N = 200, P = 100, sigma = 1)
 ```
 
@@ -115,7 +115,7 @@ For much larger settings, the simulation study can be run in a parrallelized fas
 Here I run the same simulation as above, but in parallel with a batch size of 2 and 2 cores.
 
 ```{r}
-results_parallel <- run_simulation_parallel(model_type = c("BDML", "BLRs"), N = 200, P = 100, setting = "fixed", sigma = c(1,2,4), simulation_size = 3, batch_size = 4, n_cores = 4)
+results_parallel <- run_simulation_parallel(model_type = c("BDML_b2", "BDML_r2d2", "BLRs"), N = 200, P = 100, setting = "fixed", sigma = c(1,2,4), simulation_size = 1, batch_size = 4, n_cores = 2)
 
 ## Summarize results ----
 results_parallel_table <- results_parallel |>

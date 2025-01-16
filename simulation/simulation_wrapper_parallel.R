@@ -34,20 +34,24 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     
     # init print
     print(paste0(
-        "Running a total of ", 
+        "START-UP: Running a total of ", 
         (nrow(sim_settings) / length(model_type)),
-        " simulations for each model, with # BLRs: ", 
+        " simulations for each model, with ", 
         sum(sim_settings$model_type == "BLRs")*5, 
-        " and # BDML: ", 
-        sum(sim_settings$model_type == "BDML")*2, 
-        " on ", n_cores, " cores.\n"))
+        " BLR fits, ",
+        sum(sim_settings$model_type == "BDML_b2"), 
+        " BDML_b2 fits, and ",
+        sum(sim_settings$model_type == "BDLM_r2d2"),
+        " BDLM_r2d2 fits, on ", n_cores, " cores. For details, see the log file."))
 
      # Initialize logger
     if (!dir.exists("logs")) dir.create("logs")
     log_file <- paste0("logs/simulation_log_", format(Sys.time(), "%Y%m%d%H%M%S"), ".log")
     logger <- create.logger(logfile = log_file, level = "INFO")
     
-    info(logger, paste("Simulation started at:", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
+    # Log simulation start time
+    start_time <- Sys.time()
+    info(logger, paste("Simulation started at:", format(start_time, "%Y-%m-%d %H:%M:%S")))
     
     # simulation settings logging
     # Log the input vectors
@@ -81,11 +85,14 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
             # select the appropriate simulation function based on model type
             sim_iter <- switch(
                 batch_settings[i, "model_type"],
-                "BDML" = sim_iter_BDML,
+                "BDML_b2" = sim_iter_BDML_b2,
+                "BDLM_r2d2" = sim_iter_BDML_r2d2,
                 "BLRs" = sim_iter_BLRs,
                 stop("Unknown model type: ", batch_settings[i, "model_type"])
             )
-            
+        
+        info(logger, paste("Running simulation", i, "in batch", batch, "with model setting", batch_settings[i, "model_type"]))
+        
         # Run simulation and handle errors and warnings (Note: this does not handle low-level C++ warnings from STAN, those are flushed into the console via stderr)
         tryCatch({
             # compute simulation results
@@ -140,7 +147,10 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     write.csv(results, result_file, row.names = FALSE)
     
     info(logger, paste("Saved final results to", result_file))
-    info(logger, paste("Simulation completed at:", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
+
+    # Log simulation completion time
+    end_time <- Sys.time()
+    info(logger, paste("Simulation completed at:", format(end_time, "%Y-%m-%d %H:%M:%S"), "for a total duration of", round(difftime(end_time, start_time, units = "secs"), 2), "seconds"))
 
 
     return(results)

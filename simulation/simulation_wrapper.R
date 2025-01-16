@@ -30,8 +30,10 @@ run_simulation <- function(model_type, N, P, setting, sigma, simulation_size) {
   ## Run all simulations ----
   results_list <- lapply(1:nrow(sim_settings), function(i) {
     # 1. Select model-specific functions
-    if (sim_settings[i, "model_type"] == "BDML") {
-      sim_iter <- sim_iter_BDML
+    if (sim_settings[i, "model_type"] == "BDML_b2") {
+      sim_iter <- sim_iter_BDML_b2
+    } else if (sim_settings[i, "model_type"] == "BDML_r2d2") {
+      sim_iter <- sim_iter_BDML_r2d2
     } else if (sim_settings[i, "model_type"] == "BLRs") {
       sim_iter <- sim_iter_BLRs
     } else {
