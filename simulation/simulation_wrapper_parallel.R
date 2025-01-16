@@ -20,12 +20,6 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     #' @return A list of data frames, each containing the results of a batch of simulations.
     
 
-     # Initialize logger
-    if (!dir.exists("logs")) dir.create("logs")
-    log_file <- paste0("logs/simulation_log_", format(Sys.time(), "%Y%m%d%H%M%S"), ".log")
-    logger <- create.logger(logfile = log_file, level = "INFO")
-    
-    info(logger, paste("Simulation started at:", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
 
     # Generate simulation settings
     set.seed(abs(digest::digest2int("me")))
@@ -37,7 +31,24 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
                                 sigma = sigma, 
                                 seed = seeds,
                                 stringsAsFactors = FALSE)
+    
+    # init print
+    print(paste0(
+        "Running a total of ", 
+        (nrow(sim_settings) / length(model_type)),
+        " simulations for each model, with # BLRs: ", 
+        sum(sim_settings$model_type == "BLRs")*5, 
+        " and # BDML: ", 
+        sum(sim_settings$model_type == "BDML")*2, 
+        " on ", n_cores, " cores.\n"))
 
+     # Initialize logger
+    if (!dir.exists("logs")) dir.create("logs")
+    log_file <- paste0("logs/simulation_log_", format(Sys.time(), "%Y%m%d%H%M%S"), ".log")
+    logger <- create.logger(logfile = log_file, level = "INFO")
+    
+    info(logger, paste("Simulation started at:", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
+    
     # simulation settings logging
     # Log the input vectors
     info(logger, "Input vectors passed to the simulation function:")
@@ -51,16 +62,6 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     info(logger, paste("  n_cores:", n_cores))
     info(logger, paste("  save_checkpoints:", ifelse(save_checkpoints, "TRUE", "FALSE")))
     info(logger, paste("Generated", nrow(sim_settings), "simulation rows."))
-
-    # init print
-    print(paste0(
-        "Running a total of ", 
-        (nrow(sim_settings) / length(model_type)),
-        " simulations for each model, with # BLRs: ", 
-        sum(sim_settings$model_type == "BLRs")*5, 
-        " and # BDML: ", 
-        sum(sim_settings$model_type == "BDML")*2, 
-        " on ", n_cores, " cores.\n"))
     
     # Determine the number of batches
     n_batches <- ceiling(nrow(sim_settings) / batch_size)
@@ -77,6 +78,7 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
         
         # Run batch simulations in parallel
         batch_results <- pbmclapply(1:nrow(batch_settings), function(i) {
+            # select the appropriate simulation function based on model type
             sim_iter <- switch(
                 batch_settings[i, "model_type"],
                 "BDML" = sim_iter_BDML,
@@ -84,23 +86,31 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
                 stop("Unknown model type: ", batch_settings[i, "model_type"])
             )
             
-        # Run simulation and handle errors and warnings
+        # Run simulation and handle errors and warnings (Note: this does not handle low-level C++ warnings from STAN, those are flushed into the console via stderr)
         tryCatch({
-            # Use withCallingHandlers to log warnings
-            result <- withCallingHandlers({
-                do.call(sim_iter, as.list(batch_settings[i, -1]))  # pass settings to model-family-specific simulator function (excluding model_type)
+            # compute simulation results
+            output_str <- capture.output({
+                result <- do.call(sim_iter, as.list(batch_settings[i, -1]))  # pass settings to model-family-specific simulator function (excluding model_type)
+            })
+            # log warning from stderr (lower level STAN C++ warnings)
+            if (length((output_str)) > 0) {
+                lapply(output_str, function(line) warn(logger, paste("STDERR output during simulation", i, 
+                                                                  "in batch", batch, ":", 
+                                                                  "from model", batch_settings[i, "model_type"], ":", line)))
+            }
+            # return result
+            result
             }, warning = function(w) {
                 # Log warnings
-                warning_message <- paste("Warning in simulation", i, "in batch", batch, ":", conditionMessage(w))
-                warn(logger, warning_message)
-                invokeRestart("muffleWarning")  # Suppress further propagation
-            })
-        
-            # Return result
-            result
+                warning_message <- paste("Warning in simulation", i, "in batch", batch, ":", w$message)
+                log4r::warn(logger, warning_message)
+                # return result
+                result
             }, error = function(e) {
+                # Log errors
                 error_message <- paste("Error in simulation", i, "in batch", batch, ":", e$message)
-                log4r::error(logger, error_message) 
+                log4r::error(logger, error_message)
+                # return NULL
                 NULL
             })
         }, mc.cores = n_cores)  # Adjust cores for parallel execution
