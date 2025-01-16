@@ -12,7 +12,7 @@ results <- run_simulation_parallel(
   P = 100,
   setting = "fixed",
   sigma = c(1, 2, 4),
-  simulation_size = 200,
+  simulation_size = 1,
   batch_size = 4, 
   n_cores = 2) 
 

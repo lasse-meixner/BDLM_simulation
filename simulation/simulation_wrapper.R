@@ -6,7 +6,7 @@ source("BLRs_simulation_source.R")
 run_simulation <- function(model_type, N, P, setting, sigma, simulation_size) {
   #' Run Simulation Study
   #'
-  #' @param model_type A string specifying the model type to use. Options are "BDLM" or "BLRs".
+  #' @param model_type A string specifying the model type to use. Options are "BDML_b2", "BDML_r2d2", and "BLRs".
   #'                   Details on the models can be found in the respective source files.
   #' @param N An integer specifying the number of observations.
   #' @param P An integer specifying the number of predictors.

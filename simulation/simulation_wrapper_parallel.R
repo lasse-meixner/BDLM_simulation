@@ -41,8 +41,8 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
         " BLR fits, ",
         sum(sim_settings$model_type == "BDML_b2"), 
         " BDML_b2 fits, and ",
-        sum(sim_settings$model_type == "BDLM_r2d2"),
-        " BDLM_r2d2 fits, on ", n_cores, " cores. For details, see the log file."))
+        sum(sim_settings$model_type == "BDML_r2d2"),
+        " BDML_r2d2 fits, on ", n_cores, " cores. For details, see the log file."))
 
      # Initialize logger
     if (!dir.exists("logs")) dir.create("logs")
@@ -86,19 +86,19 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
             sim_iter <- switch(
                 batch_settings[i, "model_type"],
                 "BDML_b2" = sim_iter_BDML_b2,
-                "BDLM_r2d2" = sim_iter_BDML_r2d2,
+                "BDML_r2d2" = sim_iter_BDML_r2d2,
                 "BLRs" = sim_iter_BLRs,
                 stop("Unknown model type: ", batch_settings[i, "model_type"])
             )
         
         info(logger, paste("Running simulation", i, "in batch", batch, "with model setting", batch_settings[i, "model_type"]))
         
-        # Run simulation and handle errors and warnings (Note: this does not handle low-level C++ warnings from STAN, those are flushed into the console via stderr)
+        # Run simulation and handle errors and warnings (Note: this was a pain since some is thrown by low-level stan execution, this was gold: https://stackoverflow.com/questions/49694552/suppress-messages-from-underlying-c-function-in-r/49722545#49722545)
         tryCatch({
             # compute simulation results
             output_str <- capture.output({
                 result <- do.call(sim_iter, as.list(batch_settings[i, -1]))  # pass settings to model-family-specific simulator function (excluding model_type)
-            })
+            }, type = "message")
             # log warning from stderr (lower level STAN C++ warnings)
             if (length((output_str)) > 0) {
                 lapply(output_str, function(line) warn(logger, paste("STDERR output during simulation", i, 
