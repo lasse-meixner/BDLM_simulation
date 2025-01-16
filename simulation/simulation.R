@@ -7,7 +7,7 @@ source("results_plotting_source.R")
 set.seed(abs(digest::digest2int("my simulation settings")))
 
 results <- run_simulation_parallel(
-  model_type = c("BDML", "BLRs"),
+  model_type = c("BDML_b2", "BDML_r2d2", "BLRs"),
   N = 200,
   P = 100,
   setting = "fixed",
@@ -17,9 +17,9 @@ results <- run_simulation_parallel(
 )
 
 ## Summarize results ----
-results_table <- make_results_table(results)
+results_table <- make_results_table(results) # from results_plotting_source.R
 
-## print results table (its saved already by the runner)
+## print results table
 xtable::xtable(results_table)
 
 ## create and save plots
