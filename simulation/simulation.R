@@ -7,14 +7,14 @@ source("results_plotting_source.R")
 set.seed(abs(digest::digest2int("my simulation settings")))
 
 results <- run_simulation_parallel(
-  model_type = c("BDML_b2", "BDML_r2d2", "BLRs"),
+  model_type = "BDML_b2",
   N = 200,
   P = 100,
   setting = "fixed",
   sigma = c(1, 2, 4),
-  simulation_size = 1,
-  batch_size = 4, 
-  n_cores = 2) 
+  simulation_size = 200,
+  batch_size = 16, 
+  n_cores = 4) 
 
 ## Summarize results ----
 results_table <- make_results_table(results) # from results_plotting_source.R
@@ -22,6 +22,8 @@ results_table <- make_results_table(results) # from results_plotting_source.R
 ## print results table
 xtable::xtable(results_table)
 
-## create and save plots
+## create and save plots)
+# 1.
 get_combined_plots(results, save = TRUE)
-get_combined_plots_zoom(results, save = TRUE)
+# 2. zoomed in
+get_combined_plots_zoom(results, save = TRUE, zoom_in = c("naive", "FDML_split", "hahn"))

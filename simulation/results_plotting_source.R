@@ -5,6 +5,13 @@ library(latex2exp)
 library(xtable)
 library(rlang)
 
+### GLOBAL PLOTTING SETTINGS
+
+ideal_order <- c("BDML_r2d2", "BDML_b2", "FDML_full", "FDML_split", "hahn", "linero", "naive")
+
+
+### AUXILIARY FUNCTIONS
+
 make_results_table <- function(results){
   results_table <- results %>% 
   group_by(Method, setting, sigma, N, P) %>% 
@@ -13,10 +20,17 @@ make_results_table <- function(results){
             width = mean(interval_width))
 }
 
+sort_methods <- function(results){
+  # get the actual order of the methods and sort them according to ideal order
+  results %>% mutate(Method = factor(Method, levels = ideal_order))
+}
+
+### PLOTTING CODE
+
 # Baseline function to generate individual plots
 get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, custom_colors = NULL, custom_shapes = NULL) {
 
-  data <- make_results_table(results)
+  data <- results %>% make_results_table() %>% sort_methods()
   
   plot <- data %>%
     filter(setting != "random") %>%
@@ -67,10 +81,19 @@ get_combined_plots <- function(results, save=TRUE){
     return(final_plot)
 }
 
-get_combined_plots_zoom <- function(results, save=TRUE, extracted_colors = NULL, extracted_shapes = NULL){
-    p_1_zoom <- generate_plot(results, "coverage", "Coverage", custom_colors = extracted_colors, custom_shapes = extracted_shapes)
-    p_2_zoom <- generate_plot(results, "width", "Interval Width (log scale)", scale_y_log = TRUE, custom_colors = extracted_colors, custom_shapes = extracted_shapes)
-    p_3_zoom <- generate_plot(results, "rmse", "RMSE (log scale)", scale_y_log = TRUE, custom_colors = extracted_colors, custom_shapes = extracted_shapes)
+get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("naive", "hahn", "FDML_split")){
+
+    p_1 <- get_individual_plot(results, "coverage", "Coverage")
+    # get the factor levels for the methods in zoom_in to extract the colors and shapes
+    zoom_in_index <- match(ideal_order, zoom_in) %>% order(na.last = NA)
+    extracted_colors <- unique(ggplot_build(p_1)$data[[1]]$colour)[zoom_in_index]
+    extracted_shapes <- unique(ggplot_build(p_1)$data[[1]]$shape)[zoom_in_index]
+
+    results_filtered <- results %>% filter(Method %in% zoom_in)
+
+    p_1_zoom <- get_individual_plot(results_filtered, "coverage", "Coverage", custom_colors = extracted_colors, custom_shapes = extracted_shapes)
+    p_2_zoom <- get_individual_plot(results_filtered, "width", "Interval Width (log scale)", scale_y_log = TRUE, custom_colors = extracted_colors, custom_shapes = extracted_shapes)
+    p_3_zoom <- get_individual_plot(results_filtered, "rmse", "RMSE (log scale)", scale_y_log = TRUE, custom_colors = extracted_colors, custom_shapes = extracted_shapes)
     
     combined_plots <- plot_grid(p_1_zoom, p_2_zoom, p_3_zoom, ncol = 3)
     
