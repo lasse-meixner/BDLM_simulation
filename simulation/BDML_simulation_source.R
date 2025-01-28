@@ -13,10 +13,26 @@ load_src_files <- function(src_path = "../src/") {
 load_src_files()
 
 ## Compile the Stan models ----
+model_dml_b <- cmdstan_model("../dml_b.stan")
 model_dml_b2 <- cmdstan_model("../dml_b2.stan")
 model_dml_r2d2 <- cmdstan_model("../dml_r2d2.stan")
 
-## Function to fit model ----
+## Function to fit model B ----
+fit_model_dml_b <- function(data) {
+  N <- nrow(data$X)
+  P <- ncol(data$X)
+  
+  fitted_dml_b <- model_dml_b$sample(
+    data = list(K = 2, J = P, N = N, x = data$X, y = cbind(data$Y, data$A)),
+    chains = 1,
+    parallel_chains = 1,
+    refresh = 0,
+    show_messages = FALSE,
+    show_exceptions = FALSE
+  )
+}
+
+## Function to fit model B2 (hierarchical) ----
 fit_model_dml_b2 <- function(data) {
   N <- nrow(data$X)
   P <- ncol(data$X)
@@ -96,12 +112,21 @@ extract_results_dml <- function(fit, gamma, type, additional_results_info) {
   table
 }
 
+## Main simulation function BDML_b for given setting ----
+sim_iter_BDML_b <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+  set.seed(seed)
+  data <- generate_data(N, P, setting, sigma)
+  fit <- fit_model_dml_b(data)
+  res <- extract_results_dml(fit, data$gamma, type = "BDML_b", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res
+}
+
 ## Main simulation function BDML_b2 for given setting ----
 sim_iter_BDML_b2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
   fit <- fit_model_dml_b2(data)
-  res <- extract_results_dml(fit, data$gamma, type = "DML_B2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res <- extract_results_dml(fit, data$gamma, type = "BDML_b2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
   res
 }
 
@@ -110,6 +135,6 @@ sim_iter_BDML_r2d2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
   fit_r2d2 <- fit_model_dml_r2d2(data)
-  res_r2d2 <- extract_results_dml(fit_r2d2, data$gamma, type = "BDML_R2D2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res_r2d2 <- extract_results_dml(fit_r2d2, data$gamma, type = "BDML_r2d2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
   res_r2d2
 }

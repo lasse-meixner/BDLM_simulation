@@ -39,6 +39,8 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
         " simulations for each model, with ", 
         sum(sim_settings$model_type == "BLRs")*5, 
         " BLR fits, ",
+        sum(sim_settings$model_type == "BDML_b"),
+        " BDML_b fits, ",
         sum(sim_settings$model_type == "BDML_b2"), 
         " BDML_b2 fits, and ",
         sum(sim_settings$model_type == "BDML_r2d2"),
@@ -85,6 +87,7 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
             # select the appropriate simulation function based on model type
             sim_iter <- switch(
                 batch_settings[i, "model_type"],
+                "BDML_b" = sim_iter_BDML_b,
                 "BDML_b2" = sim_iter_BDML_b2,
                 "BDML_r2d2" = sim_iter_BDML_r2d2,
                 "BLRs" = sim_iter_BLRs,
@@ -143,7 +146,7 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     results <- do.call(rbind, results_list)
     
     # Save results to CSV
-    result_file <- paste0("results/results_", format(Sys.time(), "%Y%m%d%H%M"), ".csv")
+    result_file <- paste0("results/results_", format(Sys.time(), "%Y%m%d-%H%M"), ".csv")
     write.csv(results, result_file, row.names = FALSE)
     
     info(logger, paste("Saved final results to", result_file))
