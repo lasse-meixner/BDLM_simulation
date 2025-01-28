@@ -1,35 +1,27 @@
-# Loading source functions from "simulation_source.R" for data generation and simulation wrapper
-source("simulation_wrapper.R")
+# Use parallelized version by default
 source("simulation_wrapper_parallel.R")
+source("results_plotting_source.R")
 
+### MAIN ENTRY POINT FOR SIMULATION
 # Run simulation ----
-results <- run_simulation(N = 200, P = 100, model_type = c("BLRs", "BDML"), setting = c("joint"), sigma = c(1, 2, 4), simulation_size = 100)
+set.seed(abs(digest::digest2int("i hope this works"))) # laura's initial seed
 
-# Note: for larger simulations, use run_simulation_parallel instead with additional arguments for batch_size and n_cores
-# results <- run_simulation_parallel(N = 200, P = 100, model_type = c("BLRs", "BDML"), setting = c("joint"), sigma = c(1, 2, 4), simulation_size = 100, batch_size = 64, n_cores = 4)
+results <- run_simulation_parallel(
+  model_type = c("BDML_b", "BDML_b2", "BDML_r2d2", "BLRs"),
+  N = 200,
+  P = 100,
+  setting = "fixed",
+  sigma = c(1, 2, 4),
+  simulation_size = 200,
+  batch_size = 16,
+  n_cores = 4)
 
-## Summarize results ----
-results_table <- results |>
-  group_by(Method, setting, sigma, N, P) |>
-  summarise(coverage = mean(catch), 
-            rmse = sqrt(mean(squared_error)), 
-            width = mean(interval_width))
-
-## print results table
+## Summarize and print results (for curiosity - all saved to disk automatically) ----
+results_table <- make_results_table(results) # from results_plotting_source.R
 xtable::xtable(results_table)
 
-# Save results to csv ----
-
-## create results directory if it does not exist
-if (!dir.exists("../results")) {
-  dir.create("../results")
-}
-
-## get timestamp and save
-timestamp <- format(Sys.time(), "%Y-%m-%d_%H-%M") # get timestamp
-results_file <- paste0("../results/results_", timestamp, ".csv")
-write.csv(results_table, results_file, row.names = FALSE)
-
 ## create and save plots
-plot_results(results_table, today_str, zoom = FALSE)
-plot_results(results_table, today_str, zoom = TRUE)
+# 1.
+get_combined_plots(results, save = TRUE)
+# 2. zoomed in
+get_combined_plots_zoom(results, save = TRUE, zoom_in = c("naive", "FDML_split", "hahn"))

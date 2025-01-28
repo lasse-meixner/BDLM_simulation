@@ -6,7 +6,7 @@ source("BLRs_simulation_source.R")
 run_simulation <- function(model_type, N, P, setting, sigma, simulation_size) {
   #' Run Simulation Study
   #'
-  #' @param model_type A string specifying the model type to use. Options are "BDLM" or "BLRs".
+  #' @param model_type A string specifying the model type to use. Options are "BDML_b2", "BDML_r2d2", and "BLRs".
   #'                   Details on the models can be found in the respective source files.
   #' @param N An integer specifying the number of observations.
   #' @param P An integer specifying the number of predictors.
@@ -30,8 +30,10 @@ run_simulation <- function(model_type, N, P, setting, sigma, simulation_size) {
   ## Run all simulations ----
   results_list <- lapply(1:nrow(sim_settings), function(i) {
     # 1. Select model-specific functions
-    if (sim_settings[i, "model_type"] == "BDML") {
-      sim_iter <- sim_iter_BDML
+    if (sim_settings[i, "model_type"] == "BDML_b2") {
+      sim_iter <- sim_iter_BDML_b2
+    } else if (sim_settings[i, "model_type"] == "BDML_r2d2") {
+      sim_iter <- sim_iter_BDML_r2d2
     } else if (sim_settings[i, "model_type"] == "BLRs") {
       sim_iter <- sim_iter_BLRs
     } else {
@@ -51,6 +53,9 @@ run_simulation <- function(model_type, N, P, setting, sigma, simulation_size) {
   ## Filter and Combine all results ----
   results_list <- Filter(Negate(is.null), results_list)
   results <- do.call(rbind, results_list)
+
+  ## save results to csv
+  write.csv(results, paste0("results/results_", format(Sys.time(), "%Y%m%d%H%M"), ".csv"), row.names = FALSE)
   
   return(results)
 }

@@ -2,3 +2,12 @@
 *.dat
 # all rendering files
 *_files/
+# results and logs
+*results/
+*logs/
+
+# Rhistory
+.Rhistory
+
+# testing
+test.R

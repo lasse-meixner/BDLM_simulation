@@ -8,7 +8,7 @@ output: html_document
 ## Introduction
 
 This notebook demonstrates the use of the functions used in the simulation study. 
-Data generation according to various settings considered in the paper is implemented in `generate_data_source.R`, the model fitting and results extraction for the BDLM approach are implemented in `BDML_simulation_source.R`, and for the previous methods by Hahn (2018) and Linero (2023) in `BLRs_simulation_source.R`. 
+Data generation according to various settings considered in the paper is implemented in `generate_data_source.R`, the model fitting and results extraction for the BDML approach are implemented in `BDML_simulation_source.R`, and for the previous methods by Hahn (2018) and Linero (2023) in `BLRs_simulation_source.R`. 
 
 The wrapper to perform a simulation on any combination of data generation settings and models is implemented in `simulation_wrapper.R`.
 
@@ -30,7 +30,7 @@ source("simulation_wrapper_parallel.R")
 Here I generate data from the "random" setting with 200 samples, 100 features, and a fairly low noise level in the outcome equation. For a full overview of the settings, see the docstring of `generate_data` in the `simulation_source.R` file.
 
 ```{r}
-set.seed(1234)
+set.seed(12345)
 data_random <- generate_data(setting = "random", N = 200, P = 100, sigma = 1)
 ```
 
@@ -47,13 +47,21 @@ str(data_random)
 ### Fitting BDML
 
 ```{r}
-fit_random <- fit_model_dml_b2(data_random)
+fit_bdml_b <- fit_model_dml_b(data_random)
+```
+
+```{r}
+fit_bdml_b2 <- fit_model_dml_b2(data_random)
 ```
 
 ### Extracting results
 
 ```{r}
-extract_results_dml_b2(fit_random, data_random$gamma, list(setting = "random", N = 200, P = 100, sigma = 1))
+extract_results_dml(fit_bdml_b, data_random$gamma, type = "DML_B", list(setting = "random", N = 200, P = 100, sigma = 1))
+```
+
+```{r}
+extract_results_dml(fit_bdml_b2, data_random$gamma, type = "DML_B2", list(setting = "random", N = 200, P = 100, sigma = 1))
 ```
 
 ### Fitting the BLRs by Hahn and Linero
@@ -71,8 +79,12 @@ extract_results_blr(fit_blrs$naive, data_random$gamma, "naive", list(setting = "
 
 ```{r}
 # extracting from all 3 at once
-results_list <- lapply(names(fit_blrs), function(method_name) {
-  extract_results_blr(fit_blrs[[method_name]], gamma = data_random$gamma, method_name = method_name, additional_results_info = list(setting = "random", N = 200, P = 100, sigma = 1))
+results_list <- lapply(names(fit_blrs), function(model_name){
+  if (model_name %in% c("FDML_full", "FDML_split")){
+    extract_results_lm(fit_blrs[[model_name]], data_random$gamma, model_name, list(setting = "random", N = 200, P = 100, sigma = 1))
+  } else {
+    extract_results_blr(fit_blrs[[model_name]], data_random$gamma, model_name, list(setting = "random", N = 200, P = 100, sigma = 1))
+  }
 })
 
 results <- do.call(rbind, results_list)
@@ -87,7 +99,7 @@ The simulation study wraps these steps for us, and repeats this process for a ch
 Here I do not modify the data generation setting, or the values of sigma to see how the results would change for a more noisy DGP, but this can be done by specifying e.g. `sigma = c(1,2,4)`, and is done in the actual simulation study (see `simulation.R`). Instead, for quick and simple exposition of the function, I repeat the analysis for 3 different random datasets for the one setting considered above, and for both models.
 
 ```{r}
-results <- run_simulation(model_type = c("BDML", "BLRs"), N = 200, P = 100, setting = "random", sigma = 1, simulation_size = 3)
+results <- run_simulation(model_type = c("BDML_b2", "BLRs"), N = 200, P = 100, setting = "random", sigma = 1, simulation_size = 3)
 ```
 
 ### Results
@@ -111,7 +123,7 @@ For much larger settings, the simulation study can be run in a parrallelized fas
 Here I run the same simulation as above, but in parallel with a batch size of 2 and 2 cores.
 
 ```{r}
-results_parallel <- run_simulation_parallel(model_type = c("BDML", "BLRs"), N = 200, P = 100, setting = "random", sigma = 1, simulation_size = 3, batch_size = 2, n_cores = 2)
+results_parallel <- run_simulation_parallel(model_type = c("BDML_b2", "BDML_r2d2", "BLRs"), N = 200, P = 100, setting = "fixed", sigma = c(1,2,4), simulation_size = 1, batch_size = 4, n_cores = 2)
 
 ## Summarize results ----
 results_parallel_table <- results_parallel |>
@@ -122,4 +134,12 @@ results_parallel_table <- results_parallel |>
 
 ## print results table
 results_parallel_table |> knitr::kable()
+```
+
+And plotting the results
+
+```{r}
+source("results_plotting_source.R")
+
+get_combined_plots(results_parallel, save = TRUE)
 ```

@@ -2,8 +2,6 @@
 library(cmdstanr)
 library(tidyverse)
 
-## requires set working directory to "programs/Linero2023/BDLM_clean"
-
 ## source data generation
 source("generate_data_source.R")
 
@@ -15,10 +13,26 @@ load_src_files <- function(src_path = "../src/") {
 load_src_files()
 
 ## Compile the Stan models ----
+model_dml_b <- cmdstan_model("../dml_b.stan")
 model_dml_b2 <- cmdstan_model("../dml_b2.stan")
+model_dml_r2d2 <- cmdstan_model("../dml_r2d2.stan")
 
+## Function to fit model B ----
+fit_model_dml_b <- function(data) {
+  N <- nrow(data$X)
+  P <- ncol(data$X)
+  
+  fitted_dml_b <- model_dml_b$sample(
+    data = list(K = 2, J = P, N = N, x = data$X, y = cbind(data$Y, data$A)),
+    chains = 1,
+    parallel_chains = 1,
+    refresh = 0,
+    show_messages = FALSE,
+    show_exceptions = FALSE
+  )
+}
 
-## Function to fit model ----
+## Function to fit model B2 (hierarchical) ----
 fit_model_dml_b2 <- function(data) {
   N <- nrow(data$X)
   P <- ncol(data$X)
@@ -33,12 +47,28 @@ fit_model_dml_b2 <- function(data) {
   )
 }
 
+## Function to fit model R2D2 ----
+fit_model_dml_r2d2 <- function(data) {
+  N <- nrow(data$X)
+  P <- ncol(data$X)
+
+  model_dml_r2d2$sample(
+    data = list(J = P, N = N, x = data$X, y = cbind(data$Y, data$A), b = 0.5),
+    chains = 1,
+    parallel_chains = 1,
+    refresh = 0,
+    show_messages = FALSE,
+    show_exceptions = FALSE
+  )
+}
+
 ## Function to extract results ----
-extract_results_dml_b2 <- function(fit, gamma, additional_results_info) {
+extract_results_dml <- function(fit, gamma, type, additional_results_info) {
 #' Extract results from the DML-B2 model fit
 #'
 #' @param fit A fitted model object from which to extract results.
 #' @param gamma The true value of the parameter gamma, called "alpha" in the paper
+#' @param type The type of model used, e.g. "DML_B2"
 #' @return A data frame containing the extracted results, including:
 #'         - gamma_hat: The estimated value of gamma.
 #'         - squared_error: The squared error of the estimate.
@@ -72,7 +102,7 @@ extract_results_dml_b2 <- function(fit, gamma, additional_results_info) {
     UCL = UCL,
     catch = catch,
     interval_width = interval_width,
-    Method = "DML-B2"
+    Method = type # e.g. "DML-B2"
   )
 
   # Append additional_results_info (setting parameters) to pass through for downstream analysis
@@ -82,10 +112,29 @@ extract_results_dml_b2 <- function(fit, gamma, additional_results_info) {
   table
 }
 
-## Main simulation function for a given setting ----
-sim_iter_BDML <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+## Main simulation function BDML_b for given setting ----
+sim_iter_BDML_b <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+  set.seed(seed)
+  data <- generate_data(N, P, setting, sigma)
+  fit <- fit_model_dml_b(data)
+  res <- extract_results_dml(fit, data$gamma, type = "BDML_b", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res
+}
+
+## Main simulation function BDML_b2 for given setting ----
+sim_iter_BDML_b2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
   fit <- fit_model_dml_b2(data)
-  res <- extract_results_dml_b2(fit, data$gamma, additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res <- extract_results_dml(fit, data$gamma, type = "BDML_b2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res
+}
+
+## Main simulation function BDML_r2d2 for given setting ----
+sim_iter_BDML_r2d2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+  set.seed(seed)
+  data <- generate_data(N, P, setting, sigma)
+  fit_r2d2 <- fit_model_dml_r2d2(data)
+  res_r2d2 <- extract_results_dml(fit_r2d2, data$gamma, type = "BDML_r2d2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res_r2d2
 }
