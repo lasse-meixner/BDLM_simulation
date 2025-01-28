@@ -7,7 +7,8 @@ library(rlang)
 
 ### GLOBAL PLOTTING SETTINGS
 
-ideal_order <- c("BDML_r2d2", "BDML_b2", "FDML_full", "FDML_split", "hahn", "linero", "naive")
+ideal_order <- c("BDML-R2D2", "BDML-Hier", "BDML-Basic", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split")
+shape_values <- c(16, 17, 15, 1, 2, 0, 3, 8)
 
 
 ### AUXILIARY FUNCTIONS
@@ -17,16 +18,26 @@ make_results_table <- function(results){
   group_by(Method, setting, sigma, N, P) %>% 
   summarise(coverage = mean(catch), 
             rmse = sqrt(mean(squared_error)), 
-            width = mean(interval_width))
+            width = mean(interval_width)) %>%
+  mutate(Method = case_when(
+    Method == "BDML_r2d2" ~ "BDML-R2D2",
+    Method == "BDML_b" ~ "BDML-Hier",
+    Method == "BDML_b2" ~ "BDML-Basic",
+    Method == "FDML_full" ~ "FDML-Full",
+    Method == "FDML_split" ~ "FDML-Split",
+    Method == "hahn" ~ "HCPH",
+    Method == "linero" ~ "Linero",
+    Method == "naive" ~ "Naive",
+    TRUE ~ Method  # keep other values unchanged
+  ))
 }
 
-sort_methods <- function(results){
+sort_methods <- function(results_table){
   # get the actual order of the methods and sort them according to ideal order
-  results %>% mutate(Method = factor(Method, levels = ideal_order))
+  results_table %>% mutate(Method = factor(Method, levels = ideal_order))
 }
 
 ### PLOTTING CODE
-
 # Baseline function to generate individual plots
 get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, custom_colors = NULL, custom_shapes = NULL) {
 
@@ -54,17 +65,26 @@ get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, cu
 
   if (!is.null(custom_shapes)) {
     plot <- plot + scale_shape_manual(values = custom_shapes)
+  } else {
+    plot <- plot + scale_shape_manual(values = shape_values[1:length(unique(data$Method))])
   }
 
-  return(plot)
+  # return also the mapping of the colors and shapes to the methods
+  mapping <- data.frame(
+    unique_Method = unique(data$Method),
+    mapped_colors = unique(ggplot_build(plot)$data[[1]]$colour),
+    mapped_shapes = unique(ggplot_build(plot)$data[[1]]$shape)
+  )
+
+  return(list(plot = plot, mapping = mapping))
 }
 
 
 # Wrapper function to combine the plots for Coverage, Interval Width, and RMSE
 get_combined_plots <- function(results, save=TRUE){
-    p_1 <- get_individual_plot(results, "coverage", "Coverage")
-    p_2 <- get_individual_plot(results, "width", "Interval Width (log scale)", scale_y_log = TRUE)
-    p_3 <- get_individual_plot(results, "rmse", "RMSE (log scale)", scale_y_log = TRUE)
+    p_1 <- get_individual_plot(results, "coverage", "Coverage")$plot
+    p_2 <- get_individual_plot(results, "width", "Interval Width (log scale)", scale_y_log = TRUE)$plot
+    p_3 <- get_individual_plot(results, "rmse", "RMSE (log scale)", scale_y_log = TRUE)$plot
     
     combined_plots <- plot_grid(p_1, p_2, p_3, ncol = 3)
     
@@ -75,25 +95,40 @@ get_combined_plots <- function(results, save=TRUE){
     final_plot <- plot_grid(combined_plots, legend, ncol = 1, rel_heights = c(1, 0.1))
     
     if (save) {
-        ggsave(paste0("results/plot_", format(Sys.time(), "%Y%m%d%H"), ".pdf"), final_plot, width = 9, height = 3.5)
+        ggsave(paste0("results/plot_", format(Sys.time(), "%Y%m%d-%H%M"), ".pdf"), final_plot, width = 9, height = 3.5)
     }
 
     return(final_plot)
 }
 
-get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("naive", "hahn", "FDML_split")){
+get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-R2D2", "BDML-Hier", "BDML-Basic", "Linero")){
 
-    p_1 <- get_individual_plot(results, "coverage", "Coverage")
-    # get the factor levels for the methods in zoom_in to extract the colors and shapes
-    zoom_in_index <- match(ideal_order, zoom_in) %>% order(na.last = NA)
-    extracted_colors <- unique(ggplot_build(p_1)$data[[1]]$colour)[zoom_in_index]
-    extracted_shapes <- unique(ggplot_build(p_1)$data[[1]]$shape)[zoom_in_index]
+    # extract the colors and shapes for the methods in zoom_in
+    plot_mappings <- get_individual_plot(results, "coverage", "Coverage")$mapping
+    zoom_mapping <- plot_mappings %>% filter(unique_Method %in% zoom_in)
+    # get shapes and colors for the methods in zoom_in
+    extracted_colors <- zoom_mapping$mapped_colors
+    extracted_shapes <- zoom_mapping$mapped_shapes
 
-    results_filtered <- results %>% filter(Method %in% zoom_in)
+    results_filtered <- results %>% 
+        # cheeky double rename to be able to filter using zoom_in
+        mutate(
+          Method = case_when(
+          Method == "BDML_r2d2" ~ "BDML-R2D2",
+          Method == "BDML_b" ~ "BDML-Basic",
+          Method == "BDML_b2" ~ "BDML-Hier",
+          Method == "FDML_full" ~ "FDML-Full",
+          Method == "FDML_split" ~ "FDML-Split",
+          Method == "hahn" ~ "HCPH",
+          Method == "linero" ~ "Linero",
+          Method == "naive" ~ "Naive",
+          TRUE ~ Method  # keep other values unchanged
+          )) %>%
+        filter(Method %in% zoom_in)
 
-    p_1_zoom <- get_individual_plot(results_filtered, "coverage", "Coverage", custom_colors = extracted_colors, custom_shapes = extracted_shapes)
-    p_2_zoom <- get_individual_plot(results_filtered, "width", "Interval Width (log scale)", scale_y_log = TRUE, custom_colors = extracted_colors, custom_shapes = extracted_shapes)
-    p_3_zoom <- get_individual_plot(results_filtered, "rmse", "RMSE (log scale)", scale_y_log = TRUE, custom_colors = extracted_colors, custom_shapes = extracted_shapes)
+    p_1_zoom <- get_individual_plot(results_filtered, "coverage", "Coverage", custom_colors = extracted_colors, custom_shapes = extracted_shapes)$plot
+    p_2_zoom <- get_individual_plot(results_filtered, "width", "Interval Width (log scale)", scale_y_log = TRUE, custom_colors = extracted_colors, custom_shapes = extracted_shapes)$plot
+    p_3_zoom <- get_individual_plot(results_filtered, "rmse", "RMSE (log scale)", scale_y_log = TRUE, custom_colors = extracted_colors, custom_shapes = extracted_shapes)$plot
     
     combined_plots <- plot_grid(p_1_zoom, p_2_zoom, p_3_zoom, ncol = 3)
     
@@ -104,7 +139,7 @@ get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("naive", "ha
     final_plot <- plot_grid(combined_plots, legend, ncol = 1, rel_heights = c(1, 0.1))
     
     if (save) {
-        ggsave(paste0("results/plot_zoom_", format(Sys.time(), "%Y%m%d%H"), ".pdf"), final_plot, width = 9, height = 3.5)
+        ggsave(paste0("results/plot_zoom_", format(Sys.time(), "%Y%m%d-%H%M"), ".pdf"), final_plot, width = 9, height = 3.5)
     }
 
     return(final_plot)
