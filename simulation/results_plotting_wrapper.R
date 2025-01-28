@@ -31,14 +31,7 @@ results <- read.csv(paste0("results/", detect_most_recent_results()), stringsAsF
 # Create and save plots
 ## 1. all methods
 get_combined_plots(results, save = TRUE)
-
 ## 2. zoom in
-# Use the scales for automatic extraction
-v_est_zoomin <- c(1, 2, 6)
-p_1 <- get_individual_plot(results, "coverage", "Coverage")
-extracted_colors <- unique(ggplot_build(p_1)$data[[1]]$colour)[v_est_zoomin]
-extracted_shapes <- unique(ggplot_build(p_1)$data[[1]]$shape)[v_est_zoomin]
-
-get_combined_plots_zoom(results, save = TRUE, extracted_colors = extracted_colors, extracted_shapes = extracted_shapes)
+get_combined_plots_zoom(results, save = TRUE, zoom_in = c("BDML-R2D2", "BDML-Hier", "BDML-Basic", "Linero"))
 
 
