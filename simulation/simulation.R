@@ -4,25 +4,23 @@ source("results_plotting_source.R")
 
 ### MAIN ENTRY POINT FOR SIMULATION
 # Run simulation ----
-set.seed(abs(digest::digest2int("my simulation settings")))
+set.seed(abs(digest::digest2int("i hope this works"))) # laura's initial seed
 
 results <- run_simulation_parallel(
-  model_type = "BDML_b2",
+  model_type = c("BDML_b", "BDML_b2", "BDML_r2d2", "BLRs"),
   N = 200,
   P = 100,
   setting = "fixed",
   sigma = c(1, 2, 4),
   simulation_size = 200,
-  batch_size = 16, 
-  n_cores = 4) 
+  batch_size = 16,
+  n_cores = 4)
 
-## Summarize results ----
+## Summarize and print results (for curiosity - all saved to disk automatically) ----
 results_table <- make_results_table(results) # from results_plotting_source.R
-
-## print results table
 xtable::xtable(results_table)
 
-## create and save plots)
+## create and save plots
 # 1.
 get_combined_plots(results, save = TRUE)
 # 2. zoomed in
