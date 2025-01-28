@@ -22,7 +22,6 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
 
 
     # Generate simulation settings
-    set.seed(abs(digest::digest2int("me")))
     seeds <- sample.int(.Machine$integer.max, size = simulation_size)
     sim_settings <- expand.grid(model_type = model_type, 
                                 N = N, 
