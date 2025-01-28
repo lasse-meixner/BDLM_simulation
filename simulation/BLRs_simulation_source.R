@@ -1,7 +1,7 @@
 library(tidyverse)
 library(BLR)
 
-## requires set working directory to "programs/Linero2023/BDLM_clean"
+## requires set working directory to "programs/Linero2023/BDML_clean"
 
 # Loading source for data generation
 source("generate_data_source.R")
