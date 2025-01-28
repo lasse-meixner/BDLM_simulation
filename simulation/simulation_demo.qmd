@@ -99,7 +99,7 @@ The simulation study wraps these steps for us, and repeats this process for a ch
 Here I do not modify the data generation setting, or the values of sigma to see how the results would change for a more noisy DGP, but this can be done by specifying e.g. `sigma = c(1,2,4)`, and is done in the actual simulation study (see `simulation.R`). Instead, for quick and simple exposition of the function, I repeat the analysis for 3 different random datasets for the one setting considered above, and for both models.
 
 ```{r}
-results <- run_simulation(model_type = c("BDML", "BLRs"), N = 200, P = 100, setting = "random", sigma = 1, simulation_size = 3)
+results <- run_simulation(model_type = c("BDML_b2", "BLRs"), N = 200, P = 100, setting = "random", sigma = 1, simulation_size = 3)
 ```
 
 ### Results
