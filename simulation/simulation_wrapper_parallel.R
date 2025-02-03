@@ -145,6 +145,7 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     results <- do.call(rbind, results_list)
     
     # Save results to CSV
+    if (!dir.exists("results")) {dir.create("results")}
     result_file <- paste0("results/results_", format(Sys.time(), "%Y%m%d-%H%M"), ".csv")
     write.csv(results, result_file, row.names = FALSE)
     
