@@ -22,6 +22,6 @@ xtable::xtable(results_table)
 
 ## create and save plots
 # 1.
-get_combined_plots(results, save = TRUE)
+first_plot <- get_combined_plots(results, save = TRUE)
 # 2. zoomed in
-get_combined_plots_zoom(results, save = TRUE, zoom_in = c("naive", "FDML_split", "hahn"))
+second_plot <- get_combined_plots_zoom(results, save = TRUE, zoom_in = c("naive", "FDML_split", "hahn"))
