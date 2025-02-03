@@ -9,8 +9,7 @@
 # Rhistory
 .Rhistory
 
-# testing
-test.R
+# miscellaneoues
 misc.R
 
 # compiled stan models
