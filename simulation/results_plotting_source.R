@@ -4,6 +4,7 @@ library(cowplot)
 library(latex2exp)
 library(xtable)
 library(rlang)
+library(tidyverse)
 
 ### GLOBAL PLOTTING SETTINGS
 
@@ -85,6 +86,9 @@ get_combined_plots <- function(results, save=TRUE){
     p_1 <- get_individual_plot(results, "coverage", "Coverage")$plot
     p_2 <- get_individual_plot(results, "width", "Interval Width (log scale)", scale_y_log = TRUE)$plot
     p_3 <- get_individual_plot(results, "rmse", "RMSE (log scale)", scale_y_log = TRUE)$plot
+
+    # add a horizontal line at 0.95 to the coverage plot
+    p_1 <- p_1 + geom_hline(yintercept = 0.95, linetype = "dashed", color = "black")
     
     combined_plots <- plot_grid(p_1, p_2, p_3, ncol = 3)
     
@@ -129,6 +133,9 @@ get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-R2D2",
     p_1_zoom <- get_individual_plot(results_filtered, "coverage", "Coverage", custom_colors = extracted_colors, custom_shapes = extracted_shapes)$plot
     p_2_zoom <- get_individual_plot(results_filtered, "width", "Interval Width (log scale)", scale_y_log = TRUE, custom_colors = extracted_colors, custom_shapes = extracted_shapes)$plot
     p_3_zoom <- get_individual_plot(results_filtered, "rmse", "RMSE (log scale)", scale_y_log = TRUE, custom_colors = extracted_colors, custom_shapes = extracted_shapes)$plot
+
+    # add a horizontal line at 0.95 to the coverage plot
+    p_1_zoom <- p_1_zoom + geom_hline(yintercept = 0.95, linetype = "dashed", color = "black")
     
     combined_plots <- plot_grid(p_1_zoom, p_2_zoom, p_3_zoom, ncol = 3)
     
