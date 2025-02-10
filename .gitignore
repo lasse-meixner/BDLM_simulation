@@ -3,8 +3,8 @@
 # all rendering files
 *_files/
 # results and logs
-*results/
-*logs/
+#*results/
+#*logs/
 
 # Rhistory
 .Rhistory
