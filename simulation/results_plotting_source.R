@@ -22,8 +22,8 @@ make_results_table <- function(results){
             width = mean(interval_width)) %>%
   mutate(Method = case_when(
     Method == "BDML_r2d2" ~ "BDML-R2D2",
-    Method == "BDML_b" ~ "BDML-Hier",
-    Method == "BDML_b2" ~ "BDML-Basic",
+    Method == "BDML_b" ~ "BDML-Basic",
+    Method == "BDML_b2" ~ "BDML-Hier",
     Method == "FDML_full" ~ "FDML-Full",
     Method == "FDML_split" ~ "FDML-Split",
     Method == "hahn" ~ "HCPH",
