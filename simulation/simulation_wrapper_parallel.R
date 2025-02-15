@@ -29,7 +29,8 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
                                 setting = setting, 
                                 sigma = sigma, 
                                 seed = seeds,
-                                stringsAsFactors = FALSE)
+                                stringsAsFactors = FALSE) |>
+                                arrange(model_type) # order by model type
     
     # init print
     print(paste0(
@@ -67,6 +68,9 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     info(logger, paste("  n_cores:", n_cores))
     info(logger, paste("  save_checkpoints:", ifelse(save_checkpoints, "TRUE", "FALSE")))
     info(logger, paste("Generated", nrow(sim_settings), "simulation rows."))
+
+    # keep track of failed model types
+    failed_models <- setNames(rep(0, length(model_type)), model_type)
     
     # Determine the number of batches
     n_batches <- ceiling(nrow(sim_settings) / batch_size)
@@ -108,24 +112,31 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
                                                                   "from model", batch_settings[i, "model_type"], ":", line)))
             }
             # return result
-            result
+            list(error = FALSE, result = result, model_type = batch_settings[i, "model_type"])
             }, warning = function(w) {
                 # Log warnings
-                warning_message <- paste("Warning in simulation", i, "in batch", batch, ":", w$message)
+                warning_message <- paste("Warning in simulation", i, "in batch", batch, ":", "from model", batch_settings[i, "model_type"], ":", w$message)
                 log4r::warn(logger, warning_message)
                 # return result
-                result
+                list(error = FALSE, result = result, model_type = batch_settings[i, "model_type"])
             }, error = function(e) {
                 # Log errors
-                error_message <- paste("Error in simulation", i, "in batch", batch, ":", e$message)
+                error_message <- paste("Error in simulation", i, "in batch", batch, ":", "from model", batch_settings[i, "model_type"], ":", e$message)
                 log4r::error(logger, error_message)
                 # return NULL
-                NULL
+                list(error = TRUE, result = NULL, model_type = batch_settings[i, "model_type"])
             })
         }, mc.cores = n_cores)  # Adjust cores for parallel execution
         
+        # Check for errors and update failed_models
+        for (j in 1:nrow(batch_settings)) {
+            if (batch_results[[j]]$error) {
+                failed_models[[batch_results[[j]]$model_type]] <- failed_models[[batch_results[[j]]$model_type]] + 1
+            }
+        }
+
         # Filter and save intermediate results
-        batch_results <- Filter(Negate(is.null), batch_results)
+        batch_results <- Filter(Negate(is.null), lapply(batch_results, function(x) x$result))
         results_list[[batch]] <- do.call(rbind, batch_results)
         
         # Log batch completion time
@@ -151,10 +162,17 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     
     info(logger, paste("Saved final results to", result_file))
 
+    # Log information about failed models
+    if (length(failed_models) > 0) {
+        info(logger, "FITTING SUMMARY: The following models failed:")
+        for (model in names(failed_models)) {
+            info(logger, paste("  ", model, ": ", failed_models[model], "failed simulations out of ", simulation_size, "total simulations"))
+        }
+    }
+
     # Log simulation completion time
     end_time <- Sys.time()
     info(logger, paste("Simulation completed at:", format(end_time, "%Y-%m-%d %H:%M:%S"), "for a total duration of", round(difftime(end_time, start_time, units = "secs"), 2), "seconds"))
-
-
+    
     return(results)
 }
