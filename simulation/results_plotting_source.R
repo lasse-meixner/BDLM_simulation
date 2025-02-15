@@ -10,6 +10,8 @@ library(tidyverse)
 
 ideal_order <- c("BDML-R2D2", "BDML-Hier", "BDML-Basic", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split")
 shape_values <- c(16, 17, 15, 1, 2, 0, 3, 8)
+# bind the shape values to the methods
+shape_mapping <- tibble(Method = ideal_order, shape = shape_values)
 
 
 ### AUXILIARY FUNCTIONS
@@ -67,7 +69,8 @@ get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, cu
   if (!is.null(custom_shapes)) {
     plot <- plot + scale_shape_manual(values = custom_shapes)
   } else {
-    plot <- plot + scale_shape_manual(values = shape_values[1:length(unique(data$Method))])
+    # select the shapes from the mapping based on methods that are present in the data
+    plot <- plot + scale_shape_manual(values = shape_mapping$shape[shape_mapping$Method %in% unique(data$Method)])
   }
 
   # return also the mapping of the colors and shapes to the methods
