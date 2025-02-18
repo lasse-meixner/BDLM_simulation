@@ -18,12 +18,13 @@ model_dml_b2 <- cmdstan_model("../dml_b2.stan")
 model_dml_r2d2 <- cmdstan_model("../dml_r2d2.stan")
 
 ## Function to fit model B ----
-fit_model_dml_b <- function(data) {
+fit_model_dml_b <- function(data, seed) {
   N <- nrow(data$X)
   P <- ncol(data$X)
   
   fitted_dml_b <- model_dml_b$sample(
     data = list(K = 2, J = P, N = N, x = data$X, y = cbind(data$Y, data$A)),
+    seed = seed,
     chains = 1,
     parallel_chains = 1,
     refresh = 0,
@@ -33,12 +34,13 @@ fit_model_dml_b <- function(data) {
 }
 
 ## Function to fit model B2 (hierarchical) ----
-fit_model_dml_b2 <- function(data) {
+fit_model_dml_b2 <- function(data, seed) {
   N <- nrow(data$X)
   P <- ncol(data$X)
   
   model_dml_b2$sample(
     data = list(K = 2, J = P, N = N, x = data$X, y = cbind(data$Y, data$A)),
+    seed = seed,
     chains = 1,
     parallel_chains = 1,
     refresh = 0,
@@ -48,12 +50,13 @@ fit_model_dml_b2 <- function(data) {
 }
 
 ## Function to fit model R2D2 ----
-fit_model_dml_r2d2 <- function(data) {
+fit_model_dml_r2d2 <- function(data, seed) {
   N <- nrow(data$X)
   P <- ncol(data$X)
 
   model_dml_r2d2$sample(
     data = list(J = P, N = N, x = data$X, y = cbind(data$Y, data$A), b = 0.5),
+    seed = seed,
     chains = 1,
     parallel_chains = 1,
     refresh = 0,
@@ -116,7 +119,7 @@ extract_results_dml <- function(fit, gamma, type, additional_results_info) {
 sim_iter_BDML_b <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
-  fit <- fit_model_dml_b(data)
+  fit <- fit_model_dml_b(data, seed)
   res <- extract_results_dml(fit, data$gamma, type = "BDML_b", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
   res
 }
@@ -125,7 +128,7 @@ sim_iter_BDML_b <- function(N, P, setting, sigma, seed = sample.int(.Machine$int
 sim_iter_BDML_b2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
-  fit <- fit_model_dml_b2(data)
+  fit <- fit_model_dml_b2(data, seed)
   res <- extract_results_dml(fit, data$gamma, type = "BDML_b2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
   res
 }
@@ -134,7 +137,7 @@ sim_iter_BDML_b2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$in
 sim_iter_BDML_r2d2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
-  fit_r2d2 <- fit_model_dml_r2d2(data)
+  fit_r2d2 <- fit_model_dml_r2d2(data, seed)
   res_r2d2 <- extract_results_dml(fit_r2d2, data$gamma, type = "BDML_r2d2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
   res_r2d2
 }
