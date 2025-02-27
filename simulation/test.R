@@ -9,12 +9,12 @@ source("results_plotting_source.R")
 set.seed(abs(digest::digest2int("i hope this works"))) # laura's initial seed
 
 results <- run_simulation_parallel(
-  model_type = c("BDML_b", "BDML_b2", "BDML_r2d2", "BLRs"),
+  model_type = c("BDML_b", "BDML_b2", "BLRs"),
   N = 200,
   P = 100,
   setting = "fixed",
   sigma = 1,
-  simulation_size = 1, # NOTE: TESTING: REP = 1
+  simulation_size = 3,
   batch_size = 16,
   n_cores = 4)
 

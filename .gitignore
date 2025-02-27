@@ -5,12 +5,13 @@
 # results and logs
 *results/
 *logs/
+temp/
 
 # Rhistory
 .Rhistory
 
-# miscellaneoues
-misc.R
+# comparison results
+ForLasse/
 
 # compiled stan models
 dml_b

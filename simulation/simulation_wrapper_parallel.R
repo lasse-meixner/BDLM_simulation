@@ -4,6 +4,7 @@ library(log4r)
 # source model-specific fitting functions
 source("BDML_simulation_source.R")
 source("BLRs_simulation_source.R")
+source("generate_data_source.R")
 
 ## Main entry point for simulation study
 run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation_size, batch_size = 64, n_cores = 4, save_checkpoints = FALSE) {
@@ -20,7 +21,8 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     #' @return A list of data frames, each containing the results of a batch of simulations.
     
 
-
+    # CREATE TEMP DIRECTORY FOR SINK
+    if (!dir.exists("temp")) {dir.create("temp")}
     # Generate simulation settings
     seeds <- sample.int(.Machine$integer.max, size = simulation_size)
     sim_settings <- expand.grid(model_type = model_type, 
@@ -104,6 +106,27 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
             # compute simulation results
             output_str <- capture.output({
                 result <- do.call(sim_iter, as.list(batch_settings[i, -1]))  # pass settings to model-family-specific simulator function (excluding model_type)
+                
+                # START SINK: save results to file in "temp/" for low-level comparison with laura
+                file_name <- paste0("temp/sim_N", batch_settings[i, "N"], "_P", batch_settings[i, "P"], "sigma", batch_settings[i, "sigma"], "_setting", batch_settings[i, "setting"],
+                      "_seed", batch_settings[i, "seed"], "_model", batch_settings[i, "model_type"], ".txt")
+                sink(file_name)
+                set.seed(batch_settings[i, "seed"])
+                data <- generate_data(batch_settings[i, "N"], batch_settings[i, "P"], batch_settings[i, "setting"], batch_settings[i, "sigma"])
+                X <- data$X
+                Y <- data$Y
+                A <- data$A
+                cat("X:\n")
+                print(X)
+                cat("\nY:\n")
+                print(Y)
+                cat("\nA:\n")
+                print(A)
+                cat("\nEstimation Results:\n")
+                print(result)
+                sink()
+                # END SINK
+
             }, type = "message")
             # log warning from stderr (lower level STAN C++ warnings)
             if (length((output_str)) > 0) {
