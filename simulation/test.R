@@ -14,7 +14,7 @@ results <- run_simulation_parallel(
   P = 100,
   setting = "fixed",
   sigma = 1,
-  simulation_size = 3,
+  simulation_size = 1,
   batch_size = 16,
   n_cores = 4)
 
