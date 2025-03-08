@@ -8,8 +8,24 @@ library(tidyverse)
 
 ### GLOBAL PLOTTING SETTINGS
 
-ideal_order <- c("BDML-R2D2", "BDML-Hier", "BDML-Basic", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split")
-shape_values <- c(16, 17, 15, 1, 2, 0, 3, 8)
+ideal_order <- c(#"BDML-R2D2", 
+                 "BDML-Hier", 
+                 "BDML-Basic", 
+                 "BDML-IW",
+                 "Linero", 
+                 "HCPH", 
+                 "Naive", 
+                 "FDML-Full", 
+                 "FDML-Split")
+shape_values <- c(16, 
+                  17, 
+                  15, 
+                  1, 
+                  2, 
+                  0, 
+                  3, 
+                  8)
+
 # bind the shape values to the methods
 shape_mapping <- tibble(Method = ideal_order, shape = shape_values)
 
@@ -26,6 +42,7 @@ make_results_table <- function(results){
     Method == "BDML_r2d2" ~ "BDML-R2D2",
     Method == "BDML_b" ~ "BDML-Basic",
     Method == "BDML_b2" ~ "BDML-Hier",
+    Method == "BDML_IW" ~ "BDML-IW",
     Method == "FDML_full" ~ "FDML-Full",
     Method == "FDML_split" ~ "FDML-Split",
     Method == "hahn" ~ "HCPH",
@@ -124,6 +141,7 @@ get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-R2D2",
           Method == "BDML_r2d2" ~ "BDML-R2D2",
           Method == "BDML_b" ~ "BDML-Basic",
           Method == "BDML_b2" ~ "BDML-Hier",
+          Method == "BDML_IW" ~ "BDML-IW",
           Method == "FDML_full" ~ "FDML-Full",
           Method == "FDML_split" ~ "FDML-Split",
           Method == "hahn" ~ "HCPH",
