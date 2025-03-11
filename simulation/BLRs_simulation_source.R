@@ -55,9 +55,9 @@ fit_mvn_iw_model <- function(data) {
       Y = cbind(data$Y, data$A), 
       X = data$X, 
       Bbar = cbind(rep(0, ncol(data$X)), rep(0, ncol(data$X))), # prior means
-      A = diag(ncol(data$X))*0.2, # prior precision matrix
-      nu = 3, # prior degrees of freedom
-      V = matrix(4, 2, 2) # prior scale matrix
+      A = diag(ncol(data$X)) * ncol(data$X), # so that A^-1 is: diag(1/ncol(data$X), 2, 2)
+      nu = 4, # prior degrees of freedom
+      V = matrix(1, 2, 2) # prior scale matrix
     )
     # return the fitted model
     Sigma_draw <- iw_draw$Sigma
@@ -154,12 +154,11 @@ extract_results_lm <- function(fit, gamma, method_name, additional_results_info)
   table
 }
 
-# Main simulation function for a given setting ----
+# Main simulation function for BRLs for a given setting ----
 sim_iter_BLRs <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
   fit_BRL <- fit_BLRs(data)
-  fit_IW <- fit_mvn_iw_model(data)
   
   # extract results for each BRL model
   BRLs_extraction <- lapply(names(fit_BRL), function(model_name) {
@@ -169,10 +168,20 @@ sim_iter_BLRs <- function(N, P, setting, sigma, seed = sample.int(.Machine$integ
       extract_results_blr(fit_BRL[[model_name]], data$gamma, model_name, additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
     }
   })
-  
-  # extract results for IW model
-  IW_extraction <- extract_results_IW(fit_IW, data$gamma, "BDML_IW", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
 
   # combine results
-  do.call(rbind, c(BRLs_extraction, list(IW_extraction)))
+  do.call(rbind, BRLs_extraction)
+}
+
+# Main simulation function for BDML-IW for a given setting ----
+sim_iter_BDML_iw <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+  set.seed(seed)
+  data <- generate_data(N, P, setting, sigma)
+  fit_IW <- fit_mvn_iw_model(data)
+  
+  # extract results for IW model
+  IW_extraction <- extract_results_IW(fit_IW, data$gamma, "BDML_iw", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+
+  # combine results
+  IW_extraction
 }
