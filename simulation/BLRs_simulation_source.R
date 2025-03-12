@@ -16,31 +16,31 @@ load_src_files()
 fit_BLRs <- function(data) {
   # Note: since BLR doesn't allow control of low-level cat statements (typical bs R package SE), I suppress this manually
 
-invisible(capture.output({ # Suppress output from BLR calls
-  # 1. Hahn & Linero
-  naive <- BLR(y = data$Y, XR = data$X, XF = as.matrix(data$A))
-  fitted_ps <- BLR(y = data$A, XR = data$X)
-  hahn <- BLR(y = data$Y, XF = cbind(data$A - fitted_ps$yHat), XR = data$X)
-  linero <- BLR(y = data$Y, XF = cbind(data$A, fitted_ps$yHat), XR = data$X)
+  invisible(capture.output({ # Suppress output from BLR calls
+    # 1. Hahn & Linero
+    naive <- BLR(y = data$Y, XR = data$X, XF = as.matrix(data$A))
+    fitted_ps <- BLR(y = data$A, XR = data$X)
+    hahn <- BLR(y = data$Y, XF = cbind(data$A - fitted_ps$yHat), XR = data$X)
+    linero <- BLR(y = data$Y, XF = cbind(data$A, fitted_ps$yHat), XR = data$X)
 
-  # 2. FDML
-  fitted_a_step1 <- fitted_ps
-  fitted_y_step1 <- BLR(y = data$Y, XR = data$X)
-     
-  a_res_step2 <- data$A - fitted_a_step1$mu - data$X %*% fitted_a_step1$bR
-  y_res_step2 <- data$Y - fitted_y_step1$mu - data$X %*% fitted_y_step1$bR
+    # 2. FDML
+    fitted_a_step1 <- fitted_ps
+    fitted_y_step1 <- BLR(y = data$Y, XR = data$X)
+      
+    a_res_step2 <- data$A - fitted_a_step1$mu - data$X %*% fitted_a_step1$bR
+    y_res_step2 <- data$Y - fitted_y_step1$mu - data$X %*% fitted_y_step1$bR
 
-  fitted_dml_full <- lm(y_res_step2 ~ a_res_step2)
+    fitted_dml_full <- lm(y_res_step2 ~ a_res_step2)
 
-  n <- dim(data$X)[1] # number of observations
-  ix_step1 <- 1:(floor(n/2))
-  fitted_a_step1 <- BLR(y = data$A[ix_step1], XR = data$X[ix_step1,])
-  fitted_y_step1 <- BLR(y = data$Y[ix_step1], XR = data$X[ix_step1,])
+    n <- dim(data$X)[1] # number of observations
+    ix_step1 <- 1:(floor(n/2))
+    fitted_a_step1 <- BLR(y = data$A[ix_step1], XR = data$X[ix_step1,])
+    fitted_y_step1 <- BLR(y = data$Y[ix_step1], XR = data$X[ix_step1,])
 
-  ix_step2 <- (floor(n/2) + 1):n
-  a_res_step2 <- data$A[ix_step2] - fitted_a_step1$mu - data$X[ix_step2,] %*% fitted_a_step1$bR
-  y_res_step2 <- data$Y[ix_step2] - fitted_y_step1$mu - data$X[ix_step2,] %*% fitted_y_step1$bR
-})) # end of silenced BLR calls
+    ix_step2 <- (floor(n/2) + 1):n
+    a_res_step2 <- data$A[ix_step2] - fitted_a_step1$mu - data$X[ix_step2,] %*% fitted_a_step1$bR
+    y_res_step2 <- data$Y[ix_step2] - fitted_y_step1$mu - data$X[ix_step2,] %*% fitted_y_step1$bR
+  })) # end of silenced BLR calls
 
   fitted_dml_split <- lm(y_res_step2 ~ a_res_step2)
   # Ensure the return object is not printed
@@ -49,28 +49,27 @@ invisible(capture.output({ # Suppress output from BLR calls
 
 fit_mvn_iw_model <- function(data) {
 
-  get_draw <- function(data){
-    # Fit multivariate normal model with inverse Wishart prior for Sigma matrix
-    iw_draw <- rmultireg(
-      Y = cbind(data$Y, data$A), 
-      X = data$X, 
-      Bbar = cbind(rep(0, ncol(data$X)), rep(0, ncol(data$X))), # prior means
-      A = diag(ncol(data$X)) * ncol(data$X), # so that A^-1 is: diag(1/ncol(data$X), 2, 2)
-      nu = 4, # prior degrees of freedom
-      V = matrix(1, 2, 2) # prior scale matrix
-    )
-    # return the fitted model
-    Sigma_draw <- iw_draw$Sigma
-    alpha  <- Sigma_draw[1, 2] / Sigma_draw[2, 2]
-    # return draw for alpha
-    alpha
-  }
+  # reg_data holds data for each regression as separate list
+  reg_data <- NULL
+  reg_data[[1]] <- list(y = data$Y, X = data$X)
+  reg_data[[2]] <- list(y = data$A, X = data$X)
 
-  # Get 1100 draws
-  draws <- replicate(1100, get_draw(data))
-  # Return the draws
-  draws
-  
+  # Get 1000 draws
+  invisible(capture.output({
+    draws <- rsurGibbs(
+    Data = list(regdata = reg_data),
+    # Note: Cannot assign prior. There is a variable assignment bug in their rsurgibbs_rcpp.r script.
+    # Prior = list(
+    #   betabar = rep(0, ncol(data$X)*2), # prior mean (2*P)x1
+    #   A = diag(1/ncol(data$X), ncol(data$X)*2), # prior precision (2*P)x(2*P)
+    #   nu = 4, # IW prior degrees of freedom
+    #   V = diag(1, 2, 2) # IW prior scale matrix 2x2
+    #   ),
+    Mcmc = list(R=1000, keep=1, nprint=0))
+    }))
+  # Return the transformed draws for alpha
+  Sigma_draws <- draws$Sigmadraw # 1000 x (2*2)
+  alpha_draws <- Sigma_draws[, 2] / Sigma_draws[, 4]
 }
 
 # Function to extract results for IW model
