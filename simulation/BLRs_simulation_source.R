@@ -58,13 +58,12 @@ fit_mvn_iw_model <- function(data) {
   invisible(capture.output({
     draws <- rsurGibbs(
     Data = list(regdata = reg_data),
-    # Note: Cannot assign prior. There is a variable assignment bug in their rsurgibbs_rcpp.r script.
-    # Prior = list(
-    #   betabar = rep(0, ncol(data$X)*2), # prior mean (2*P)x1
-    #   A = diag(1/ncol(data$X), ncol(data$X)*2), # prior precision (2*P)x(2*P)
-    #   nu = 4, # IW prior degrees of freedom
-    #   V = diag(1, 2, 2) # IW prior scale matrix 2x2
-    #   ),
+    Prior = list(
+      betabar = rep(0, ncol(data$X)*2), # prior mean (2*P)x1
+      A = diag(1/ncol(data$X), ncol(data$X)*2), # prior precision (2*P)x(2*P)
+      nu = 4, # IW prior degrees of freedom
+      V = diag(1, 2, 2) # IW prior scale matrix 2x2
+      ),
     Mcmc = list(R=1000, keep=1, nprint=0))
     }))
   # Return the transformed draws for alpha
