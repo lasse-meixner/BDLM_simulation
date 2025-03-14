@@ -7,7 +7,6 @@ library(rlang)
 library(tidyverse)
 
 ### GLOBAL PLOTTING SETTINGS
-
 ideal_order <- c(#"BDML-R2D2", 
                  "BDML-IW-Hier",
                  "BDML-Hier", 
@@ -27,10 +26,9 @@ shape_values <- c(19,
                   0, 
                   3, 
                   8)
+color_values <- c("firebrick4", "#F8766D", "darkorange2", "orange", "#00BA38", "green", "#619CFF", "purple", "#F564E3")
 
-# bind the shape values to the methods
-shape_mapping <- tibble(Method = ideal_order, shape = shape_values)
-
+style_mapping <- tibble(Method = ideal_order, shape = shape_values, color = color_values)
 
 ### AUXILIARY FUNCTIONS
 
@@ -65,6 +63,7 @@ sort_methods <- function(results_table){
 get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, custom_colors = NULL, custom_shapes = NULL) {
 
   data <- results %>% make_results_table() %>% sort_methods()
+  methods_present <- intersect(unique(data$Method), style_mapping$Method)
   
   plot <- data %>%
     filter(setting != "random") %>%
@@ -84,14 +83,18 @@ get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, cu
 
   if (!is.null(custom_colors)) {
     plot <- plot + scale_color_manual(values = custom_colors)
+  } else {
+    plot <- plot + scale_color_manual(values = setNames(style_mapping$color[style_mapping$Method %in% methods_present],
+                                                        style_mapping$Method[style_mapping$Method %in% methods_present]))
   }
 
   if (!is.null(custom_shapes)) {
     plot <- plot + scale_shape_manual(values = custom_shapes)
   } else {
-    # select the shapes from the mapping based on methods that are present in the data
-    plot <- plot + scale_shape_manual(values = shape_mapping$shape[shape_mapping$Method %in% unique(data$Method)])
+    plot <- plot + scale_shape_manual(values = setNames(style_mapping$shape[style_mapping$Method %in% methods_present],
+                                                        style_mapping$Method[style_mapping$Method %in% methods_present]))
   }
+
 
   # return also the mapping of the colors and shapes to the methods
   mapping <- data.frame(
@@ -128,14 +131,13 @@ get_combined_plots <- function(results, save=TRUE){
     return(final_plot)
 }
 
-get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-R2D2", "BDML-Hier", "BDML-Basic", "Linero")){
+get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-R2D2", "BDML-Hier", "BDML-Basic", "Linero"), suffix = ""){
 
     # extract the colors and shapes for the methods in zoom_in
-    plot_mappings <- get_individual_plot(results, "coverage", "Coverage")$mapping
-    zoom_mapping <- plot_mappings %>% filter(unique_Method %in% zoom_in)
-    # get shapes and colors for the methods in zoom_in
-    extracted_colors <- zoom_mapping$mapped_colors
-    extracted_shapes <- zoom_mapping$mapped_shapes
+    zoom_methods <- intersect(zoom_in, style_mapping$Method)
+    extracted_colors <- setNames(style_mapping$color, style_mapping$Method)[zoom_methods]
+    extracted_shapes <- setNames(style_mapping$shape, style_mapping$Method)[zoom_methods]
+
 
     results_filtered <- results %>% 
         # cheeky double rename to be able to filter using zoom_in
@@ -171,7 +173,7 @@ get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-R2D2",
     final_plot <- plot_grid(combined_plots, legend, ncol = 1, rel_heights = c(1, 0.1))
     
     if (save) {
-        ggsave(paste0("results/plot_zoom_", format(Sys.time(), "%Y%m%d-%H%M"), ".pdf"), final_plot, width = 9, height = 3.5)
+        ggsave(paste0("results/plot_zoom_", format(Sys.time(), "%Y%m%d-%H%M"), suffix, ".pdf"), final_plot, width = 9, height = 3.5)
     }
 
     return(final_plot)
