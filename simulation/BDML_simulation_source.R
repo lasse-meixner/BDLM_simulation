@@ -16,6 +16,7 @@ load_src_files()
 model_dml_b <- cmdstan_model("../dml_b.stan")
 model_dml_b2 <- cmdstan_model("../dml_b2.stan")
 model_dml_r2d2 <- cmdstan_model("../dml_r2d2.stan")
+model_dml_b2_iw <- cmdstan_model("../dml_b2_iw.stan")
 
 ## Function to fit model B ----
 fit_model_dml_b <- function(data, seed) {
@@ -66,11 +67,11 @@ fit_model_dml_r2d2 <- function(data, seed) {
 }
 
 ## Function to fit model IW-Hierarchical ----
-fit_model_dml_iw_hierarchical <- function(data, seed) {
+fit_model_dml_b2_iw <- function(data, seed) {
   N <- nrow(data$X)
   P <- ncol(data$X)
   
-  model_dml_iw_hierarchical$sample(
+  model_dml_b2_iw$sample(
     data = list(J = P, N = N, x = data$X, y = cbind(data$Y, data$A)),
     seed = seed,
     chains = 1,
@@ -158,11 +159,11 @@ sim_iter_BDML_r2d2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$
   res_r2d2
 }
 
-## Main simulation function BDML_iw_hierarchical for given setting ----
-sim_iter_BDML_iw_hierarchical <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+## Main simulation function BDML_b2_iw for given setting ----
+sim_iter_BDML_b2_iw <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
-  fit_iw_hierarchical <- fit_model_dml_iw_hierarchical(data, seed)
-  res_iw_hierarchical <- extract_results_dml(fit_iw_hierarchical, data$gamma, type = "BDML_iw_hier", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
-  res_iw_hierarchical
+  fit_iw <- fit_model_dml_b2_iw(data, seed)
+  res_iw <- extract_results_dml(fit_iw, data$gamma, type = "BDML_b2_iw", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res_iw
 }

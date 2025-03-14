@@ -9,15 +9,17 @@ library(tidyverse)
 ### GLOBAL PLOTTING SETTINGS
 
 ideal_order <- c(#"BDML-R2D2", 
+                 "BDML-IW-Hier",
                  "BDML-Hier", 
-                 "BDML-Basic", 
                  "BDML-IW",
+                 "BDML-Basic", 
                  "Linero", 
                  "HCPH", 
                  "Naive", 
                  "FDML-Full", 
                  "FDML-Split")
-shape_values <- c(16, 
+shape_values <- c(19,
+                  16, 
                   17, 
                   15, 
                   1, 
@@ -40,6 +42,7 @@ make_results_table <- function(results){
             width = mean(interval_width)) %>%
   mutate(Method = case_when(
     Method == "BDML_r2d2" ~ "BDML-R2D2",
+    Method == "BDML_b2_iw" ~ "BDML-IW-Hier",
     Method == "BDML_b" ~ "BDML-Basic",
     Method == "BDML_b2" ~ "BDML-Hier",
     Method == "BDML_iw" ~ "BDML-IW",
@@ -139,6 +142,7 @@ get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-R2D2",
         mutate(
           Method = case_when(
           Method == "BDML_r2d2" ~ "BDML-R2D2",
+          Method == "BDML_b2_iw" ~ "BDML-IW-Hier",
           Method == "BDML_b" ~ "BDML-Basic",
           Method == "BDML_b2" ~ "BDML-Hier",
           Method == "BDML_iw" ~ "BDML-IW",
