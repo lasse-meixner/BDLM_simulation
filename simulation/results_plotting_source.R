@@ -131,6 +131,7 @@ get_combined_plots <- function(results, save=TRUE){
     return(final_plot)
 }
 
+# Wrapper function to combine the plots for Coverage, Interval Width, and RMSE for a subset of methods
 get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-R2D2", "BDML-Hier", "BDML-Basic", "Linero"), suffix = ""){
 
     # extract the colors and shapes for the methods in zoom_in
