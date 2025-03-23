@@ -6,12 +6,13 @@ library(mvtnorm)
 
 prepare_root_data <- function(N, P) {
   X <- matrix(rnorm(n = N * P), nrow = N)
-  theta <- rep(1/sqrt(P), P) # gamma in the paper
-  beta <- rnorm(P, 0, 1/sqrt(P))
-  A_hat <- as.numeric(X %*% theta)
-  A <- A_hat + rnorm(N)
-  mu_hat <- as.numeric(X %*% beta)
-  list(X = X, theta = theta, beta = beta, A_hat = A_hat, A = A, mu_hat = mu_hat)
+  # theta <- rep(1/sqrt(P), P) # gamma in the paper
+  # beta <- rnorm(P, 0, 1/sqrt(P))
+  # A_hat <- as.numeric(X %*% theta)
+  # A <- A_hat + rnorm(N)
+  # mu_hat <- as.numeric(X %*% beta)
+  # list(X = X, theta = theta, beta = beta, A_hat = A_hat, A = A, mu_hat = mu_hat)
+  list(X = X)
 }
 
 ## Setting specific data tweak functions ----
@@ -29,8 +30,11 @@ tweak_data_fixed <- function(data) {
 
 tweak_data_noisy_fs <- function(data) {
   data <- tweak_data_fixed(data)
-  # override theta
-  data$theta <- runif(P, 0, 1/sqrt(ncol(data$X)))
+  data$theta <- runif(P, 0, 1/sqrt(P))
+  data$beta <- rnorm(P, 0, 1/sqrt(P))
+  data$A_hat <- as.numeric(data$X %*% data$theta)
+  data$A <- data$A_hat + rnorm(N)
+  data$mu_hat <- as.numeric(data$X %*% data$beta)
   data
 }
 
