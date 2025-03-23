@@ -24,5 +24,5 @@ xtable::xtable(results_table)
 # 1.
 first_plot <- get_combined_plots(results, save = TRUE)
 # 2. zoomed in
-zoomed_in_1 <- get_combined_plots_zoom(results, save = TRUE, zoom_in = c("BDML-Hier", "BDML-Basic", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split"))
-zoomed_in_2 <- get_combined_plots_zoom(results, save = TRUE, zoom_in = c("BDML-IW-Hier", "BDML-Hier", "BDML-IW", "BDML-Basic", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split"))
+zoomed_in_1 <- get_combined_plots_zoom(results, save = TRUE, zoom_in = c("BDML-HP-LKJ", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split"))
+zoomed_in_2 <- get_combined_plots_zoom(results, save = TRUE, zoom_in = c("BDML-HP-IW", "BDML-HP-LKJ", "BDML-IW", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split"))

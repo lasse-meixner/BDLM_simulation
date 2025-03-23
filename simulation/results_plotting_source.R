@@ -8,17 +8,17 @@ library(tidyverse)
 
 ### GLOBAL PLOTTING SETTINGS
 ideal_order <- c(#"BDML-R2D2", 
-                 "BDML-IW-Hier",
-                 "BDML-Hier", 
+                 "BDML-HP-IW",
+                 "BDML-HP-LKJ", 
                  "BDML-IW",
-                 "BDML-Basic", 
+                 "BDML-LKJ", 
                  "Linero", 
                  "HCPH", 
                  "Naive", 
                  "FDML-Full", 
                  "FDML-Split")
 shape_values <- c(19,
-                  16, 
+                  18, 
                   17, 
                   15, 
                   1, 
@@ -40,9 +40,9 @@ make_results_table <- function(results){
             width = mean(interval_width)) %>%
   mutate(Method = case_when(
     Method == "BDML_r2d2" ~ "BDML-R2D2",
-    Method == "BDML_b2_iw" ~ "BDML-IW-Hier",
-    Method == "BDML_b" ~ "BDML-Basic",
-    Method == "BDML_b2" ~ "BDML-Hier",
+    Method == "BDML_b2_iw" ~ "BDML-HP-IW",
+    Method == "BDML_b" ~ "BDML-LKJ",
+    Method == "BDML_b2" ~ "BDML-HP-LKJ",
     Method == "BDML_iw" ~ "BDML-IW",
     Method == "FDML_full" ~ "FDML-Full",
     Method == "FDML_split" ~ "FDML-Split",
