@@ -7,12 +7,28 @@ library(rlang)
 library(tidyverse)
 
 ### GLOBAL PLOTTING SETTINGS
+ideal_order <- c(#"BDML-R2D2", 
+                 "BDML-HP-IW",
+                 "BDML-HP-LKJ", 
+                 "BDML-IW",
+                 "BDML-LKJ", 
+                 "Linero", 
+                 "HCPH", 
+                 "Naive", 
+                 "FDML-Full", 
+                 "FDML-Split")
+shape_values <- c(19,
+                  18, 
+                  17, 
+                  15, 
+                  1, 
+                  2, 
+                  0, 
+                  3, 
+                  8)
+color_values <- c("firebrick4", "#F8766D", "darkorange2", "orange", "#00BA38", "green", "#619CFF", "purple", "#F564E3")
 
-ideal_order <- c("BDML-Hier", "BDML-Basic", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split")
-shape_values <- c(16, 17, 1, 2, 0, 3, 8)
-# bind the shape values to the methods
-shape_mapping <- tibble(Method = ideal_order, shape = shape_values)
-
+style_mapping <- tibble(Method = ideal_order, shape = shape_values, color = color_values)
 
 ### AUXILIARY FUNCTIONS
 
@@ -24,8 +40,10 @@ make_results_table <- function(results){
             width = mean(interval_width)) %>%
   mutate(Method = case_when(
     Method == "BDML_r2d2" ~ "BDML-R2D2",
-    Method == "BDML_b" ~ "BDML-Basic",
-    Method == "BDML_b2" ~ "BDML-Hier",
+    Method == "BDML_b2_iw" ~ "BDML-HP-IW",
+    Method == "BDML_b" ~ "BDML-LKJ",
+    Method == "BDML_b2" ~ "BDML-HP-LKJ",
+    Method == "BDML_iw" ~ "BDML-IW",
     Method == "FDML_full" ~ "FDML-Full",
     Method == "FDML_split" ~ "FDML-Split",
     Method == "hahn" ~ "HCPH",
