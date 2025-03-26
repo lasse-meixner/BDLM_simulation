@@ -32,6 +32,6 @@ results <- read.csv(paste0("results/", detect_most_recent_results()), stringsAsF
 ## 1. all methods
 get_combined_plots(results, save = TRUE)
 ## 2. zoom in
-get_combined_plots_zoom(results, save = TRUE, zoom_in = c("BDML-R2D2", "BDML-Hier", "BDML-Basic", "Linero"))
+get_combined_plots_zoom(results, save = TRUE, zoom_in = c("BDML-Hier", "BDML-Basic", "Linero"))
 
 
