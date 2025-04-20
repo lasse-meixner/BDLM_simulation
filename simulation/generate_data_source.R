@@ -1,120 +1,139 @@
-library(tidyverse)
-library(mvtnorm)
-
 # Auxiliary functions for data generation ----
 ## General function to prepare root data ----
 
+library(tidyverse)
+library(mvtnorm)
+
+#------------------------------------------------------------------------------#
+# 1) ROOT PREP  
+#------------------------------------------------------------------------------#
 prepare_root_data <- function(N, P) {
-  X <- matrix(rnorm(n = N * P), nrow = N)
-  # theta <- rep(1/sqrt(P), P) # gamma in the paper
-  # beta <- rnorm(P, 0, 1/sqrt(P))
-  # A_hat <- as.numeric(X %*% theta)
-  # A <- A_hat + rnorm(N)
-  # mu_hat <- as.numeric(X %*% beta)
-  # list(X = X, theta = theta, beta = beta, A_hat = A_hat, A = A, mu_hat = mu_hat)
-  list(X = X)
+  list(X = matrix(rnorm(N * P), nrow = N), N = N, P = P)
 }
 
-## Setting specific data tweak functions ----
-tweak_data_random <- function(data, N) {
-  data$gamma <- rnorm(1) # alpha in paper
-  data$w <- rnorm(1) # kappa in paper
-  data
+#------------------------------------------------------------------------------#
+# 2) STRUCTURAL COMPONENTS BUILDER  
+#------------------------------------------------------------------------------#
+build_structures <- function(dat,
+                             theta_fun = function(P) rep(1/sqrt(P), P),
+                             beta_fun  = function(P) rnorm(P, 0, 1/sqrt(P))) {
+  dat$theta  <- theta_fun(dat$P)
+  dat$beta   <- beta_fun(dat$P)
+  dat$A_hat  <- as.numeric(dat$X %*% dat$theta)
+  dat$A      <- dat$A_hat + rnorm(dat$N)
+  dat$mu_hat <- as.numeric(dat$X %*% dat$beta)
+  dat
 }
 
-tweak_data_fixed <- function(data) {
-  data$gamma <- 2 # alpha in paper
-  data$w <- -0.5 # kappa in paper
-  data
+#------------------------------------------------------------------------------#
+# 3) OUTCOME BUILDER  
+#------------------------------------------------------------------------------#
+build_outcome <- function(dat, sigma) {
+  dat$Y     <- dat$gamma * dat$A +
+               dat$w     * dat$A_hat +
+               dat$mu_hat +
+               sigma * rnorm(dat$N)
+  dat$sigma <- sigma
+  dat
 }
 
-tweak_data_noisy_fs <- function(data, N, P) {
-  data <- tweak_data_fixed(data)
-  data$theta <- runif(P, 0, 1/sqrt(P))
-  data$beta <- rnorm(P, 0, 1/sqrt(P))
-  data$A_hat <- as.numeric(data$X %*% data$theta)
-  data$A <- data$A_hat + rnorm(N)
-  data$mu_hat <- as.numeric(data$X %*% data$beta)
-  data
+#------------------------------------------------------------------------------#
+# 4) SETTING-SPECIFIC GENERATORS  
+#------------------------------------------------------------------------------#
+
+generate_random_data <- function(N, P, sigma) {
+  dat <- prepare_root_data(N, P)
+  dat$gamma <- rnorm(1)
+  dat$w     <- rnorm(1)
+  dat <- build_structures(dat)
+  build_outcome(dat, sigma)
 }
 
-tweak_data_hahn <- function(data) {
-  data$gamma <- 2
-  data$w <- -2
-  data
+generate_fixed_data <- function(N, P, sigma) {
+  dat <- prepare_root_data(N, P)
+  dat$gamma <- 2
+  dat$w     <- -0.5
+  dat <- build_structures(dat)
+  build_outcome(dat, sigma)
 }
 
-tweak_data_naive <- function(data) {
-  data$gamma <- 2
-  data$w <- 0
-  data
+generate_noisy_fs_data <- function(N, P, sigma) {
+  dat <- prepare_root_data(N, P)
+  dat$gamma <- 2
+  dat$w     <- -0.5
+  dat <- build_structures(
+    dat,
+    theta_fun = function(P) runif(P, 0, 1/sqrt(P)),
+    beta_fun  = function(P) rnorm(P, 0, 1/sqrt(P))
+  )
+  build_outcome(dat, sigma)
 }
 
-tweak_data_mixed <- function(data, P) {
-  data$gamma <- 1
-  data$w <- -1
-  data$theta_w <- data$theta
-  data$theta_w[floor(P/2):P] <- 0 # Set half of the coefficients to zero
-  data$A_hat <- as.numeric(data$X %*% data$theta_w)
-  data
+generate_hahn_data <- function(N, P, sigma) {
+  dat <- prepare_root_data(N, P)
+  dat$gamma <- 2
+  dat$w     <- -2
+  dat <- build_structures(dat)
+  build_outcome(dat, sigma)
 }
 
-tweak_data_joint <- function(data, N, P) {
-  data$delta <- 0.5 # renamed this to delta to avoid maximum confusion
-  B <- matrix(rnorm(n = P * 2), nrow = 2)
-  Sigma <- matrix(c(1, data$delta, data$delta, 1), byrow = TRUE, nrow = 2)
-  errors <- rmvnorm(n = N, mean = rep(0, 2), sigma = Sigma)
-  W <- data$X %*% t(B) + errors
-  data$Y <- W[, 1]
-  data$A <- W[, 2]
-  data
+generate_naive_data <- function(N, P, sigma) {
+  dat <- prepare_root_data(N, P)
+  dat$gamma <- 2
+  dat$w     <- 0
+  dat <- build_structures(dat)
+  build_outcome(dat, sigma)
 }
 
-## Main Function to generate data based on setting ----
-generate_data <- function(N, P, setting, sigma) {
+generate_mixed_data <- function(N, P, sigma) {
+  dat <- prepare_root_data(N, P)
+  dat$gamma <- 1
+  dat$w     <- -1
+  dat <- build_structures(
+    dat,
+    theta_fun = function(P) {
+      θ <- rep(1/sqrt(P), P)
+      θ[floor(P/2):P] <- 0
+      θ
+    }
+  )
+  # mixed uses A_hat only
+  build_outcome(dat, sigma)
+}
+
+generate_joint_data <- function(N, P, sigma = NULL) {
+  dat <- prepare_root_data(N, P)
+  dat$delta <- 0.5
+  B <- matrix(rnorm(P * 2), nrow = 2)
+  Sigma <- matrix(c(1, dat$delta, dat$delta, 1), 2, 2)
+  errors <- rmvnorm(N, mean = c(0, 0), sigma = Sigma)
+
+  W <- dat$X %*% t(B) + errors
+  dat$Y <- W[,1]
+  dat$A <- W[,2]
+  dat$sigma <- NA
+  dat
+}
+
+#------------------------------------------------------------------------------#
+# 5) DISPATCHER  
+#------------------------------------------------------------------------------#
 #' Generate data based on the specified setting
 #'
-#' @param N An integer specifying the number of observations.
-#' @param P An integer specifying the number of predictors.
-#' @param setting A string specifying the data generation setting. 
-#'                Options are "random", "fixed", "hahn", "naive", "mixed", "joint".
-#' @param sigma A numeric value specifying the standard deviation of the noise in the outcome equation.
-#' @return A list containing the generated data, including predictors (X), 
-#'         response (Y), and other relevant parameters based on the setting.
-#'
-#' @details This function generates data according to different settings. 
-#'          Each setting tweaks the data in a specific way:
-#'          - "random": Random gamma and w values.
-#'          - "fixed": Fixed gamma and w values.
-#'          - "hahn": Specific gamma and w values for Hahn setting.
-#'          - "naive": Specific gamma and w values for Naive setting.
-#'          - "mixed": Mixed setting with some coefficients set to zero.
-#'          - "joint": Joint setting with correlated errors.
-  data <- prepare_root_data(N, P)
-  
-  if (setting == "random") {
-    data <- tweak_data_random(data, N)
-  } else if (setting == "fixed") {
-    data <- tweak_data_fixed(data)
-  } else if (setting == "noisy_fs") {
-    data <- tweak_data_noisy_fs(data, N, P)
-  } else if (setting == "hahn") {
-    data <- tweak_data_hahn(data)
-  } else if (setting == "naive") {
-    data <- tweak_data_naive(data)
-  } else if (setting == "mixed") {
-    data <- tweak_data_mixed(data, P)
-  } else if (setting == "joint") {
-    data <- tweak_data_joint(data, N, P)
-    return(data)
-  }
-  if (setting != "joint") {
-    data$Y <- data$gamma * data$A + data$w * data$A_hat + data$mu_hat + sigma * rnorm(N)
-  }
-
-  # save sigma
-  data$sigma <- sigma
-
-  # return data
-  data
+#' @param N       Number of obs
+#' @param P       Number of predictors
+#' @param setting One of "random", "fixed", "noisy_fs", 
+#'                "hahn", "naive", "mixed", "joint"
+#' @param sigma   Noise sd (ignored for "joint")
+generate_data <- function(N, P, setting, sigma = 1) {
+  switch(setting,
+    random    = generate_random_data(N, P, sigma),
+    fixed     = generate_fixed_data(N, P, sigma),
+    noisy_fs  = generate_noisy_fs_data(N, P, sigma),
+    hahn      = generate_hahn_data(N, P, sigma),
+    naive     = generate_naive_data(N, P, sigma),
+    mixed     = generate_mixed_data(N, P, sigma),
+    joint     = generate_joint_data(N, P),
+    stop("Unknown setting: ", setting)
+  )
 }
