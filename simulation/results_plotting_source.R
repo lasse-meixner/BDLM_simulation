@@ -132,7 +132,7 @@ get_combined_plots <- function(results, save=TRUE){
     return(final_plot)
 }
 
-get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-Hier", "BDML-Basic", "Linero")){
+get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-HP-IW", "BDML-HP-LKJ", "Linero")) {
 
     # extract the colors and shapes for the methods in zoom_in
     plot_mappings <- get_individual_plot(results, "coverage", "Coverage")$mapping
