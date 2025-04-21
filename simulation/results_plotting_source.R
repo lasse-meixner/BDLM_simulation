@@ -63,6 +63,7 @@ sort_methods <- function(results_table){
 get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, custom_colors = NULL, custom_shapes = NULL) {
 
   data <- results %>% make_results_table() %>% sort_methods()
+  methods_present <- intersect(unique(data$Method), style_mapping$Method)
   
   plot <- data %>%
     filter(setting != "random") %>%
@@ -82,14 +83,18 @@ get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, cu
 
   if (!is.null(custom_colors)) {
     plot <- plot + scale_color_manual(values = custom_colors)
+  } else {
+    plot <- plot + scale_color_manual(values = setNames(style_mapping$color[style_mapping$Method %in% methods_present],
+                                                        style_mapping$Method[style_mapping$Method %in% methods_present]))
   }
 
   if (!is.null(custom_shapes)) {
     plot <- plot + scale_shape_manual(values = custom_shapes)
   } else {
-    # select the shapes from the mapping based on methods that are present in the data
-    plot <- plot + scale_shape_manual(values = shape_mapping$shape[shape_mapping$Method %in% unique(data$Method)])
+    plot <- plot + scale_shape_manual(values = setNames(style_mapping$shape[style_mapping$Method %in% methods_present],
+                                                        style_mapping$Method[style_mapping$Method %in% methods_present]))
   }
+
 
   # return also the mapping of the colors and shapes to the methods
   mapping <- data.frame(

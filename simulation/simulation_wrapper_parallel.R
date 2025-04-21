@@ -39,6 +39,10 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
         " simulations for each model, with ", 
         sum(sim_settings$model_type == "BLRs")*5, 
         " BLR fits, ",
+        sum(sim_settings$model_type == "BDML_iw"),
+        " BDML_iw fits, ",
+        sum(sim_settings$model_type == "BDML_b2_iw"),
+        " BDML_b2_iw fits, ",
         sum(sim_settings$model_type == "BDML_b"),
         " BDML_b fits, ",
         sum(sim_settings$model_type == "BDML_b2"), 
@@ -93,6 +97,8 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
                 "BDML_b" = sim_iter_BDML_b,
                 "BDML_b2" = sim_iter_BDML_b2,
                 "BDML_r2d2" = sim_iter_BDML_r2d2,
+                "BDML_iw" = sim_iter_BDML_iw,
+                "BDML_b2_iw" = sim_iter_BDML_b2_iw,
                 "BLRs" = sim_iter_BLRs,
                 stop("Unknown model type: ", batch_settings[i, "model_type"])
             )

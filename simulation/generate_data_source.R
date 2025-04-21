@@ -27,6 +27,13 @@ tweak_data_fixed <- function(data) {
   data
 }
 
+tweak_data_noisy_fs <- function(data) {
+  data <- tweak_data_fixed(data)
+  # override theta
+  data$theta <- runif(P, 0, 1/sqrt(ncol(data$X)))
+  data
+}
+
 tweak_data_hahn <- function(data) {
   data$gamma <- 2
   data$w <- -2
@@ -85,6 +92,8 @@ generate_data <- function(N, P, setting, sigma) {
     data <- tweak_data_random(data, N)
   } else if (setting == "fixed") {
     data <- tweak_data_fixed(data)
+  } else if (setting == "noisy_fs") {
+    data <- tweak_data_noisy_fs(data)
   } else if (setting == "hahn") {
     data <- tweak_data_hahn(data)
   } else if (setting == "naive") {
