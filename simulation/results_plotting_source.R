@@ -8,17 +8,17 @@ library(tidyverse)
 
 ### GLOBAL PLOTTING SETTINGS
 ideal_order <- c(#"BDML-R2D2", 
-                 "BDML-IW-Hier",
-                 "BDML-Hier", 
+                 "BDML-HP-IW",
+                 "BDML-HP-LKJ", 
                  "BDML-IW",
-                 "BDML-Basic", 
+                 "BDML-LKJ", 
                  "Linero", 
                  "HCPH", 
                  "Naive", 
                  "FDML-Full", 
                  "FDML-Split")
 shape_values <- c(19,
-                  16, 
+                  18, 
                   17, 
                   15, 
                   1, 
@@ -40,9 +40,9 @@ make_results_table <- function(results){
             width = mean(interval_width)) %>%
   mutate(Method = case_when(
     Method == "BDML_r2d2" ~ "BDML-R2D2",
-    Method == "BDML_b2_iw" ~ "BDML-IW-Hier",
-    Method == "BDML_b" ~ "BDML-Basic",
-    Method == "BDML_b2" ~ "BDML-Hier",
+    Method == "BDML_b2_iw" ~ "BDML-HP-IW",
+    Method == "BDML_b" ~ "BDML-LKJ",
+    Method == "BDML_b2" ~ "BDML-HP-LKJ",
     Method == "BDML_iw" ~ "BDML-IW",
     Method == "FDML_full" ~ "FDML-Full",
     Method == "FDML_split" ~ "FDML-Split",
@@ -70,7 +70,7 @@ get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, cu
     ggplot(aes(x = sigma, y = .data[[y_var]], color = Method, shape = Method)) +
     geom_point() + geom_line() +
     theme_bw() +
-    xlab(TeX("$\\sigma$ (log scale)")) + ylab(y_label) +
+    xlab(TeX("$\\sigma_{\\epsilon}$ (log scale)")) + ylab(y_label) +
     theme(legend.position = "none") +
     labs(color = "", shape = "") +
     guides(color = guide_legend(nrow = 1, byrow = TRUE),
@@ -119,35 +119,38 @@ get_combined_plots <- function(results, save=TRUE){
     combined_plots <- plot_grid(p_1, p_2, p_3, ncol = 3)
     
     # Create a common legend from one of the plots
-    legend <- ggpubr::get_legend(p_1 + theme(legend.position = "bottom"))
+    legend <- ggpubr::get_legend(p_1 + theme(legend.position = "bottom",
+                                             legend.text = element_text(size = 12)))
 
     # Combine the plots and the legend in a vertical layout
     final_plot <- plot_grid(combined_plots, legend, ncol = 1, rel_heights = c(1, 0.1))
     
     if (save) {
-        ggsave(paste0("results/plot_", format(Sys.time(), "%Y%m%d-%H%M"), ".pdf"), final_plot, width = 9, height = 3.5)
+        ggsave(paste0("results/plot_", format(Sys.time(), "%Y%m%d-%H"), ".pdf"), final_plot, width = 9, height = 3.5)
     }
 
     return(final_plot)
 }
 
-# Wrapper function to combine the plots for Coverage, Interval Width, and RMSE for a subset of methods
-get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-R2D2", "BDML-Hier", "BDML-Basic", "Linero"), suffix = ""){
+get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-HP-IW", "BDML-HP-LKJ", "Linero")) {
 
     # extract the colors and shapes for the methods in zoom_in
-    zoom_methods <- intersect(zoom_in, style_mapping$Method)
-    extracted_colors <- setNames(style_mapping$color, style_mapping$Method)[zoom_methods]
-    extracted_shapes <- setNames(style_mapping$shape, style_mapping$Method)[zoom_methods]
-
+    plot_mappings <- get_individual_plot(results, "coverage", "Coverage")$mapping
+    zoom_mapping <- plot_mappings %>% 
+      filter(unique_Method %in% zoom_in) %>% 
+      arrange(factor(unique_Method, levels = zoom_in))
+    # get shapes and colors for the methods in zoom_in
+    extracted_colors <- zoom_mapping$mapped_colors
+    extracted_shapes <- zoom_mapping$mapped_shapes
 
     results_filtered <- results %>% 
         # cheeky double rename to be able to filter using zoom_in
         mutate(
           Method = case_when(
           Method == "BDML_r2d2" ~ "BDML-R2D2",
-          Method == "BDML_b2_iw" ~ "BDML-IW-Hier",
-          Method == "BDML_b" ~ "BDML-Basic",
-          Method == "BDML_b2" ~ "BDML-Hier",
+          Method == "BDML_b2_iw" ~ "BDML-HP-IW",
+          Method == "BDML_b" ~ "BDML-LKJ",
+          Method == "BDML_b2" ~ "BDML-HP-LKJ",
           Method == "BDML_iw" ~ "BDML-IW",
           Method == "FDML_full" ~ "FDML-Full",
           Method == "FDML_split" ~ "FDML-Split",
@@ -168,13 +171,14 @@ get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-R2D2",
     combined_plots <- plot_grid(p_1_zoom, p_2_zoom, p_3_zoom, ncol = 3)
     
     # Create a common legend from one of the plots
-    legend <- ggpubr::get_legend(p_1_zoom + theme(legend.position = "bottom"))
+    legend <- ggpubr::get_legend(p_1_zoom + theme(legend.position = "bottom",
+                                                  legend.text = element_text(size = 12)))
 
     # Combine the plots and the legend in a vertical layout
     final_plot <- plot_grid(combined_plots, legend, ncol = 1, rel_heights = c(1, 0.1))
     
     if (save) {
-        ggsave(paste0("results/plot_zoom_", format(Sys.time(), "%Y%m%d-%H%M"), suffix, ".pdf"), final_plot, width = 9, height = 3.5)
+        ggsave(paste0("results/plot_zoom_", format(Sys.time(), "%Y%m%d-%H"), ".pdf"), final_plot, width = 9, height = 3.5)
     }
 
     return(final_plot)
