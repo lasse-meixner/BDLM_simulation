@@ -12,6 +12,7 @@ ideal_order <- c(#"BDML-R2D2",
                  "BDML-HP-LKJ", 
                  "BDML-IW",
                  "BDML-LKJ", 
+                 "BDML-IW-JS",
                  "Linero", 
                  "HCPH", 
                  "Naive", 
@@ -21,12 +22,13 @@ shape_values <- c(19,
                   18, 
                   17, 
                   15, 
+                  16,
                   1, 
                   2, 
                   0, 
                   3, 
                   8)
-color_values <- c("firebrick4", "#F8766D", "darkorange2", "orange", "#00BA38", "green", "#619CFF", "purple", "#F564E3")
+color_values <- c("firebrick4", "#F8766D", "darkorange2", "orange", "darkorange3", "#00BA38", "green", "#619CFF", "purple", "#F564E3")
 
 style_mapping <- tibble(Method = ideal_order, shape = shape_values, color = color_values)
 
@@ -44,6 +46,7 @@ make_results_table <- function(results){
     Method == "BDML_b" ~ "BDML-LKJ",
     Method == "BDML_b2" ~ "BDML-HP-LKJ",
     Method == "BDML_iw" ~ "BDML-IW",
+    Method == "BDML_iw_js" ~ "BDML-IW-JS",
     Method == "FDML_full" ~ "FDML-Full",
     Method == "FDML_split" ~ "FDML-Split",
     Method == "hahn" ~ "HCPH",
@@ -152,6 +155,7 @@ get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-HP-IW"
           Method == "BDML_b" ~ "BDML-LKJ",
           Method == "BDML_b2" ~ "BDML-HP-LKJ",
           Method == "BDML_iw" ~ "BDML-IW",
+          Method == "BDML_iw_js" ~ "BDML-IW-JS",
           Method == "FDML_full" ~ "FDML-Full",
           Method == "FDML_split" ~ "FDML-Split",
           Method == "hahn" ~ "HCPH",

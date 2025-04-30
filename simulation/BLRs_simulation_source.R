@@ -47,6 +47,7 @@ fit_BLRs <- function(data) {
   invisible(list(naive = naive, hahn = hahn, linero = linero, FDML_full = fitted_dml_full, FDML_split = fitted_dml_split))
 }
 
+# Function to fit multivariate Inverse Wishart model ----
 fit_mvn_iw_model <- function(data) {
 
   # reg_data holds data for each regression as separate list
@@ -61,6 +62,47 @@ fit_mvn_iw_model <- function(data) {
     Prior = list(
       betabar = rep(0, ncol(data$X)*2), # prior mean (2*P)x1
       A = diag(1/ncol(data$X), ncol(data$X)*2), # prior precision (2*P)x(2*P)
+      nu = 4, # IW prior degrees of freedom
+      V = diag(1, 2, 2) # IW prior scale matrix 2x2
+      ),
+    Mcmc = list(R=1000, keep=1, nprint=0))
+    }))
+  # Return the transformed draws for alpha
+  Sigma_draws <- draws$Sigmadraw # 1000 x (2*2)
+  alpha_draws <- Sigma_draws[, 2] / Sigma_draws[, 4]
+}
+
+## Function to fit James-Stein IW shrinkage model ----
+fit_mvn_iw_js_model <- function(data) {
+
+  # reg_data holds data for each regression as separate list
+  reg_data <- NULL
+  reg_data[[1]] <- list(y = data$Y, X = data$X)
+  reg_data[[2]] <- list(y = data$A, X = data$X)
+
+  # build shrinkage prior precision matrix
+  # FS OLS
+  ols_fs <- lm(data$A ~ data$X - 1)
+  ols_fs_res_var <- sum(ols_fs$residuals^2) / (nrow(data$X) - ncol(data$X))
+  gamma_hat <- ols_fs$coefficients
+  # SS OLS
+  ols_ss <- lm(data$Y ~ data$X - 1)
+  ols_ss_res_var <- sum(ols_ss$residuals^2) / (nrow(data$X) - ncol(data$X))
+  delta_hat <- ols_ss$coefficients
+
+  # shrinkage prior precision matrix
+  tau_gamma_inv <- ols_fs_res_var * (ncol(data$X)-2) / t(gamma_hat) %*% (t(data$X) %*% data$X) %*% gamma_hat
+  tau_delta_inv <- ols_ss_res_var * (ncol(data$X)-2) / t(delta_hat) %*% (t(data$X) %*% data$X) %*% delta_hat
+
+  A_shrinkage <- diag(c(rep(tau_delta_inv, ncol(data$X)), rep(tau_gamma_inv, ncol(data$X))))
+
+  # Get 1000 draws
+  invisible(capture.output({
+    draws <- rsurGibbs(
+    Data = list(regdata = reg_data),
+    Prior = list(
+      betabar = rep(0, ncol(data$X)*2), # prior mean (2*P)x1
+      A = A_shrinkage, # prior precision (2*P)x(2*P)
       nu = 4, # IW prior degrees of freedom
       V = diag(1, 2, 2) # IW prior scale matrix 2x2
       ),
@@ -176,10 +218,12 @@ sim_iter_BDML_iw <- function(N, P, setting, sigma, seed = sample.int(.Machine$in
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
   fit_IW <- fit_mvn_iw_model(data)
+  fit_IW_js <- fit_mvn_iw_js_model(data)
   
-  # extract results for IW model
+  # extract results for IW models
   IW_extraction <- extract_results_IW(fit_IW, data$gamma, "BDML_iw", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  IW_js_extraction <- extract_results_IW(fit_IW_js, data$gamma, "BDML_iw_js", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
 
   # combine results
-  IW_extraction
+  combined_results <- rbind(IW_extraction, IW_js_extraction)
 }
