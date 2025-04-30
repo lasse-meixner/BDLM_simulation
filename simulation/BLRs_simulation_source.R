@@ -91,8 +91,8 @@ fit_mvn_iw_js_model <- function(data) {
   delta_hat <- ols_ss$coefficients
 
   # shrinkage prior precision matrix
-  tau_gamma_inv <- ols_fs_res_var * (ncol(data$X)-2) / t(gamma_hat) %*% (t(data$X) %*% data$X) %*% gamma_hat
-  tau_delta_inv <- ols_ss_res_var * (ncol(data$X)-2) / t(delta_hat) %*% (t(data$X) %*% data$X) %*% delta_hat
+  tau_gamma_inv <- ols_fs_res_var * (ncol(data$X)-2) / (t(gamma_hat) %*% (t(data$X) %*% data$X) %*% gamma_hat)
+  tau_delta_inv <- ols_ss_res_var * (ncol(data$X)-2) / (t(delta_hat) %*% (t(data$X) %*% data$X) %*% delta_hat)
 
   A_shrinkage <- diag(c(rep(tau_delta_inv, ncol(data$X)), rep(tau_gamma_inv, ncol(data$X))))
 
