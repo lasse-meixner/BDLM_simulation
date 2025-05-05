@@ -8,10 +8,10 @@ set.seed(abs(digest::digest2int("i hope this works"))) # laura's initial seed
 
 results <- run_simulation_parallel(
   model_type = c("BDML_iw", "BLRs"),
-  N = 50,
+  N = 101,
   P = 100,
   setting = "fixed",
-  sigma = c(1, 2, 4),
+  sigma = c(1, 2, 4, 8),
   simulation_size = 500,
   batch_size = 48,
   n_cores = 24)
