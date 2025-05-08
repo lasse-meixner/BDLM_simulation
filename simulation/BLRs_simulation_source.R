@@ -64,10 +64,10 @@ fit_mvn_iw_model <- function(data) {
       nu = 4, # IW prior degrees of freedom
       V = diag(1, 2, 2) # IW prior scale matrix 2x2
       ),
-    Mcmc = list(R=1000, keep=1, nprint=0))
+    Mcmc = list(R=12000, keep=1, nprint=0))
     }))
   # Return the transformed draws for alpha
-  Sigma_draws <- draws$Sigmadraw # 1000 x (2*2)
+  Sigma_draws <- draws$Sigmadraw[-(1:2000), , drop = FALSE] # R x (2*2), remove burn-in
   alpha_draws <- Sigma_draws[, 2] / Sigma_draws[, 4]
 }
 
