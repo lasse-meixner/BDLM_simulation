@@ -8,6 +8,7 @@
 
 # Rhistory
 .Rhistory
+.Rapp.history
 
 # miscellaneoues
 misc.R
