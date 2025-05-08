@@ -6,14 +6,14 @@ source("BDML_simulation_source.R")
 source("BLRs_simulation_source.R")
 
 ## Main entry point for simulation study
-run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation_size, 
+run_simulation_parallel <- function(model_type, n, p, setting, sigma, simulation_size, 
                                     batch_size = 64, n_cores = 4, save_checkpoints = FALSE,
                                     datetime_tag = format(Sys.time(), "%Y%m%d-%H%M")) {
     #' Run a parallelized simulation study
     #'
     #' @param model_type Character vector specifying the model types to be simulated (e.g., "BDML", "BLRs").
-    #' @param N Integer vector specifying the sample sizes for the simulations.
-    #' @param P Integer vector specifying the number of predictors for the simulations.
+    #' @param n Integer vector specifying the sample sizes for the simulations.
+    #' @param p Integer vector specifying the number of predictors for the simulations.
     #' @param setting Character vector specifying different settings for the simulations.
     #' @param sigma Numeric vector specifying the noise levels for the simulations.
     #' @param simulation_size Integer specifying the total number of simulations to run per setting.
@@ -28,8 +28,8 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     # Generate simulation settings
     seeds <- sample.int(.Machine$integer.max, size = simulation_size)
     sim_settings <- expand.grid(model_type = model_type, 
-                                N = N, 
-                                P = P, 
+                                n = n, 
+                                p = p, 
                                 setting = setting, 
                                 sigma = sigma, 
                                 seed = seeds,
@@ -67,8 +67,8 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     # Log the input vectors
     info(logger, "Input vectors passed to the simulation function:")
     info(logger, paste("  model_type:", paste(model_type, collapse = ", ")))
-    info(logger, paste("  N:", paste(N, collapse = ", ")))
-    info(logger, paste("  P:", paste(P, collapse = ", ")))
+    info(logger, paste("  n:", paste(n, collapse = ", ")))
+    info(logger, paste("  p:", paste(p, collapse = ", ")))
     info(logger, paste("  setting:", paste(setting, collapse = ", ")))
     info(logger, paste("  sigma:", paste(sigma, collapse = ", ")))
     info(logger, paste("  simulation_size:", simulation_size))

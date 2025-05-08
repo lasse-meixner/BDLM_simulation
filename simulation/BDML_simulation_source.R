@@ -20,11 +20,11 @@ model_bdml_iw_hp <- cmdstan_model("../stan/bdml_iw_hp.stan")
 
 ## Function to fit model B ----
 fit_model_bdml_lkj <- function(data, seed) {
-  N <- nrow(data$X)
-  P <- ncol(data$X)
+  n <- nrow(data$X)
+  p <- ncol(data$X)
   
   fitted_bdml_lkj <- model_bdml_lkj$sample(
-    data = list(K = 2, J = P, N = N, x = data$X, y = cbind(data$Y, data$A)),
+    data = list(k = 2, p = p, n = n, X = data$X, Y = cbind(data$Y, data$D)),
     seed = seed,
     chains = 1,
     parallel_chains = 1,
@@ -36,11 +36,11 @@ fit_model_bdml_lkj <- function(data, seed) {
 
 ## Function to fit model B2 (hierarchical) ----
 fit_model_bdml_lkj_hp <- function(data, seed) {
-  N <- nrow(data$X)
-  P <- ncol(data$X)
+  n <- nrow(data$X)
+  p <- ncol(data$X)
   
   model_bdml_lkj_hp$sample(
-    data = list(K = 2, J = P, N = N, x = data$X, y = cbind(data$Y, data$A)),
+    data = list(k = 2, p = p, n = n, X = data$X, Y = cbind(data$Y, data$D)),
     seed = seed,
     chains = 1,
     parallel_chains = 1,
@@ -52,11 +52,11 @@ fit_model_bdml_lkj_hp <- function(data, seed) {
 
 ## Function to fit model R2D2 ----
 fit_model_bdml_r2d2 <- function(data, seed) {
-  N <- nrow(data$X)
-  P <- ncol(data$X)
+  n <- nrow(data$X)
+  p <- ncol(data$X)
 
   model_bdml_r2d2$sample(
-    data = list(J = P, N = N, x = data$X, y = cbind(data$Y, data$A), b = 0.5),
+    data = list(p = p, n = n, X = data$X, Y = cbind(data$Y, data$D), b = 0.5),
     seed = seed,
     chains = 1,
     parallel_chains = 1,
@@ -68,11 +68,11 @@ fit_model_bdml_r2d2 <- function(data, seed) {
 
 ## Function to fit model IW-Hierarchical ----
 fit_model_bdml_iw_hp <- function(data, seed) {
-  N <- nrow(data$X)
-  P <- ncol(data$X)
+  n <- nrow(data$X)
+  p <- ncol(data$X)
   
   model_bdml_iw_hp$sample(
-    data = list(J = P, N = N, x = data$X, y = cbind(data$Y, data$A)),
+    data = list(p = p, n = n, X = data$X, Y = cbind(data$Y, data$D)),
     seed = seed,
     chains = 1,
     parallel_chains = 1,
@@ -83,40 +83,40 @@ fit_model_bdml_iw_hp <- function(data, seed) {
 }
 
 ## Function to extract results ----
-extract_results_bdml <- function(fit, gamma, type, additional_results_info) {
+extract_results_bdml <- function(fit, alpha, type, additional_results_info) {
 #' Extract results from the DML-B2 model fit
 #'
 #' @param fit A fitted model object from which to extract results.
-#' @param gamma The true value of the parameter gamma, called "alpha" in the paper
+#' @param alpha The true value of the parameter alpha, called "alpha" in the paper
 #' @param type The type of model used, e.g. "BDML-LKJ-HP"
 #' @return A data frame containing the extracted results, including:
-#'         - gamma_hat: The estimated value of gamma.
+#'         - alpha_hat: The estimated value of alpha.
 #'         - squared_error: The squared error of the estimate.
 #'         - LCL: The lower confidence limit of the interval.
 #'         - UCL: The upper confidence limit of the interval.
-#'         - catch: Whether the true gamma is within the confidence interval.
+#'         - catch: Whether the true alpha is within the confidence interval.
 #'         - interval_width: The width of the confidence interval.
 #'         - Method: The method used ("DML-B2").
 #'
 #' @details This function extracts the posterior draws of the parameter alpha
 #'          from the fitted model, computes summary statistics, and checks
-#'          whether the true gamma value is within the computed interval.
+#'          whether the true alpha value is within the computed interval.
   draws <- fit$draws("alpha")
   fit_stat <- data.frame(
     mean = mean(draws),
     q2.5 = quantile(draws, 0.025),
     q97.5 = quantile(draws, 0.975)
   )
-  gamma_hat <- fit_stat$mean
+  alpha_hat <- fit_stat$mean
   interval <- c(fit_stat$q2.5, fit_stat$q97.5)
-  squared_error <- (gamma_hat - gamma)^2
-  catch <- check_interval(gamma, interval) # Uses check_interval.R
+  squared_error <- (alpha_hat - alpha)^2
+  catch <- check_interval(alpha, interval) # Uses check_interval.R
   interval_width <- interval[2] - interval[1]
   LCL <- interval[1]
   UCL <- interval[2]
   
   table <- data.frame(
-    gamma_hat = gamma_hat, 
+    alpha_hat = alpha_hat, 
     squared_error = squared_error,
     LCL = LCL,
     UCL = UCL,
@@ -133,37 +133,37 @@ extract_results_bdml <- function(fit, gamma, type, additional_results_info) {
 }
 
 ## Main simulation function bdml_lkj for given setting ----
-sim_iter_bdml_lkj <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+sim_iter_bdml_lkj <- function(n, p, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
-  data <- generate_data(N, P, setting, sigma)
+  data <- generate_data(n, p, setting, sigma)
   fit <- fit_model_bdml_lkj(data, seed)
-  res <- extract_results_bdml(fit, data$gamma, type = "BDML-LKJ", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res <- extract_results_bdml(fit, data$alpha, type = "BDML-LKJ", additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
   res
 }
 
 ## Main simulation function bdml_lkj_hp for given setting ----
-sim_iter_bdml_lkj_hp <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+sim_iter_bdml_lkj_hp <- function(n, p, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
-  data <- generate_data(N, P, setting, sigma)
+  data <- generate_data(n, p, setting, sigma)
   fit <- fit_model_bdml_lkj_hp(data, seed)
-  res <- extract_results_bdml(fit, data$gamma, type = "BDML-LKJ-HP", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res <- extract_results_bdml(fit, data$alpha, type = "BDML-LKJ-HP", additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
   res
 }
 
 ## Main simulation function bdml_r2d2 for given setting ----
-sim_iter_bdml_r2d2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+sim_iter_bdml_r2d2 <- function(n, p, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
-  data <- generate_data(N, P, setting, sigma)
+  data <- generate_data(n, p, setting, sigma)
   fit_r2d2 <- fit_model_bdml_r2d2(data, seed)
-  res_r2d2 <- extract_results_bdml(fit_r2d2, data$gamma, type = "BDML-R2D2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res_r2d2 <- extract_results_bdml(fit_r2d2, data$alpha, type = "BDML-R2D2", additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
   res_r2d2
 }
 
 ## Main simulation function bdml_iw_hp for given setting ----
-sim_iter_bdml_iw_hp <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+sim_iter_bdml_iw_hp <- function(n, p, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
-  data <- generate_data(N, P, setting, sigma)
+  data <- generate_data(n, p, setting, sigma)
   fit_iw <- fit_model_bdml_iw_hp(data, seed)
-  res_iw <- extract_results_bdml(fit_iw, data$gamma, type = "BDML-IW-HP", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res_iw <- extract_results_bdml(fit_iw, data$alpha, type = "BDML-IW-HP", additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
   res_iw
 }

@@ -1,21 +1,21 @@
 data {
-  int<lower=1> K;
-  int<lower=1> J;
-  int<lower=0> N;
-  array[N] vector[J] x;
-  array[N] vector[K] y;
+  int<lower=1> k;
+  int<lower=1> p;
+  int<lower=0> n;
+  array[n] vector[p] X;
+  array[n] vector[k] Y;
 }
 parameters {
-  matrix[K, J] beta;
-  cholesky_factor_corr[K] L_Omega;
-  vector<lower=0>[K] L_sigma;
+  matrix[k, p] beta;
+  cholesky_factor_corr[k] L_Omega;
+  vector<lower=0>[k] L_sigma;
 }
 model {
-  array[N] vector[K] mu;
-  matrix[K, K] L_Sigma;
+  array[n] vector[k] mu;
+  matrix[k, k] L_Sigma;
 
-  for (n in 1:N) {
-    mu[n] = beta * x[n];
+  for (n in 1:n) {
+    mu[n] = beta * X[n];
 
   }
 
@@ -25,7 +25,7 @@ model {
   L_Omega ~ lkj_corr_cholesky(4);
   L_sigma ~ cauchy(0, 2.5);
 
-  y ~ multi_normal_cholesky(mu, L_Sigma);
+  Y ~ multi_normal_cholesky(mu, L_Sigma);
 }
 generated quantities {
   real alpha;

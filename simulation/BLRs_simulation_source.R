@@ -18,31 +18,31 @@ fit_BLRs <- function(data) {
 
   invisible(capture.output({ # Suppress output from BLR calls
     # 1. Hahn & Linero
-    naive <- BLR(y = data$Y, XR = data$X, XF = as.matrix(data$A))
-    fitted_ps <- BLR(y = data$A, XR = data$X)
-    hcph <- BLR(y = data$Y, XF = cbind(data$A - fitted_ps$yHat), XR = data$X)
-    linero <- BLR(y = data$Y, XF = cbind(data$A, fitted_ps$yHat), XR = data$X)
+    naive <- BLR(y = data$Y, XR = data$X, XF = as.matrix(data$D))
+    fitted_ps <- BLR(y = data$D, XR = data$X)
+    hcph <- BLR(y = data$Y, XF = cbind(data$D - fitted_ps$yHat), XR = data$X)
+    linero <- BLR(y = data$Y, XF = cbind(data$D, fitted_ps$yHat), XR = data$X)
 
     # 2. FDML
-    fitted_a_step1 <- fitted_ps
+    fitted_d_step1 <- fitted_ps
     fitted_y_step1 <- BLR(y = data$Y, XR = data$X)
       
-    a_res_step2 <- data$A - fitted_a_step1$mu - data$X %*% fitted_a_step1$bR
+    d_res_step2 <- data$D - fitted_d_step1$mu - data$X %*% fitted_d_step1$bR
     y_res_step2 <- data$Y - fitted_y_step1$mu - data$X %*% fitted_y_step1$bR
 
-    fitted_fdml_full <- lm(y_res_step2 ~ a_res_step2)
+    fitted_fdml_full <- lm(y_res_step2 ~ d_res_step2)
 
     n <- dim(data$X)[1] # number of observations
     ix_step1 <- 1:(floor(n/2))
-    fitted_a_step1 <- BLR(y = data$A[ix_step1], XR = data$X[ix_step1,])
+    fitted_d_step1 <- BLR(y = data$D[ix_step1], XR = data$X[ix_step1,])
     fitted_y_step1 <- BLR(y = data$Y[ix_step1], XR = data$X[ix_step1,])
 
     ix_step2 <- (floor(n/2) + 1):n
-    a_res_step2 <- data$A[ix_step2] - fitted_a_step1$mu - data$X[ix_step2,] %*% fitted_a_step1$bR
+    d_res_step2 <- data$D[ix_step2] - fitted_d_step1$mu - data$X[ix_step2,] %*% fitted_d_step1$bR
     y_res_step2 <- data$Y[ix_step2] - fitted_y_step1$mu - data$X[ix_step2,] %*% fitted_y_step1$bR
   })) # end of silenced BLR calls
 
-  fitted_fdml_split <- lm(y_res_step2 ~ a_res_step2)
+  fitted_fdml_split <- lm(y_res_step2 ~ d_res_step2)
   # Ensure the return object is not printed
   invisible(list(Naive = naive, HCPH = hcph, Linero = linero, "FDML-Full" = fitted_fdml_full, "FDML-Split" = fitted_fdml_split))
 }
@@ -52,15 +52,15 @@ fit_mvn_iw_model <- function(data) {
   # reg_data holds data for each regression as separate list
   reg_data <- NULL
   reg_data[[1]] <- list(y = data$Y, X = data$X)
-  reg_data[[2]] <- list(y = data$A, X = data$X)
+  reg_data[[2]] <- list(y = data$D, X = data$X)
 
   # Get 1000 draws
   invisible(capture.output({
     draws <- rsurGibbs(
     Data = list(regdata = reg_data),
     Prior = list(
-      betabar = rep(0, ncol(data$X)*2), # prior mean (2*P)x1
-      A = diag(1/ncol(data$X), ncol(data$X)*2), # prior precision (2*P)x(2*P)
+      betabar = rep(0, ncol(data$X)*2), # prior mean (2*p)x1
+      A = diag(1/ncol(data$X), ncol(data$X)*2), # prior precision (2*p)x(2*p)
       nu = 4, # IW prior degrees of freedom
       V = diag(1, 2, 2) # IW prior scale matrix 2x2
       ),
@@ -72,17 +72,17 @@ fit_mvn_iw_model <- function(data) {
 }
 
 # Function to extract results for IW model
-extract_results_IW <- function(draws, gamma, method_name, additional_results_info) {
-  gamma_hat <- mean(draws)
+extract_results_IW <- function(draws, alpha, method_name, additional_results_info) {
+  alpha_hat <- mean(draws)
   interval <- unname(quantile(draws, c(0.025, 0.975)))
-  squared_error <- (gamma_hat - gamma)^2
-  catch <- check_interval(gamma, interval)
+  squared_error <- (alpha_hat - alpha)^2
+  catch <- check_interval(alpha, interval)
   interval_width <- interval[2] - interval[1]
   LCL <- interval[1]
   UCL <- interval[2]
   
   table <- data.frame(
-    gamma_hat = gamma_hat, 
+    alpha_hat = alpha_hat, 
     squared_error = squared_error,
     LCL = LCL,
     UCL = UCL,
@@ -99,17 +99,17 @@ extract_results_IW <- function(draws, gamma, method_name, additional_results_inf
 }
 
 # Function to extract results for Hahn and Linero models from BLR object ----
-extract_results_blr <- function(fit, gamma, method_name, additional_results_info) {
-  gamma_hat <- fit$bF[1]
+extract_results_blr <- function(fit, alpha, method_name, additional_results_info) {
+  alpha_hat <- fit$bF[1]
   interval <- get_interval(fit)
-  squared_error <- (gamma_hat - gamma)^2
-  catch <- check_interval(gamma, interval)
+  squared_error <- (alpha_hat - alpha)^2
+  catch <- check_interval(alpha, interval)
   interval_width <- interval[2] - interval[1]
   LCL <- interval[1]
   UCL <- interval[2]
   
   table <- data.frame(
-    gamma_hat = gamma_hat, 
+    alpha_hat = alpha_hat, 
     squared_error = squared_error,
     LCL = LCL,
     UCL = UCL,
@@ -126,17 +126,17 @@ extract_results_blr <- function(fit, gamma, method_name, additional_results_info
 }
 
 # Function to extract results for FDML model from lm object ----
-extract_results_lm <- function(fit, gamma, method_name, additional_results_info) {
-  gamma_hat <- summary(fit)$coefficients[2, 1]
+extract_results_lm <- function(fit, alpha, method_name, additional_results_info) {
+  alpha_hat <- summary(fit)$coefficients[2, 1]
   interval <- unname(confint(fit)[2,])
-  squared_error <- (gamma_hat - gamma)^2
-  catch <- check_interval(gamma, interval)
+  squared_error <- (alpha_hat - alpha)^2
+  catch <- check_interval(alpha, interval)
   interval_width <- interval[2] - interval[1]
   LCL <- interval[1]
   UCL <- interval[2]
   
   table <- data.frame(
-    gamma_hat = gamma_hat, 
+    alpha_hat = alpha_hat, 
     squared_error = squared_error,
     LCL = LCL,
     UCL = UCL,
@@ -153,17 +153,17 @@ extract_results_lm <- function(fit, gamma, method_name, additional_results_info)
 }
 
 # Main simulation function for BRLs for a given setting ----
-sim_iter_BLRs <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+sim_iter_BLRs <- function(n, p, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
-  data <- generate_data(N, P, setting, sigma)
+  data <- generate_data(n, p, setting, sigma)
   fit_BRL <- fit_BLRs(data)
   
   # extract results for each BRL model
   BRLs_extraction <- lapply(names(fit_BRL), function(model_name) {
     if (model_name %in% c("FDML-Full", "FDML-Split")) {
-      extract_results_lm(fit_BRL[[model_name]], data$gamma, model_name, additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+      extract_results_lm(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
     } else {
-      extract_results_blr(fit_BRL[[model_name]], data$gamma, model_name, additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+      extract_results_blr(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
     }
   })
 
@@ -172,13 +172,13 @@ sim_iter_BLRs <- function(N, P, setting, sigma, seed = sample.int(.Machine$integ
 }
 
 # Main simulation function for BDML-IW for a given setting ----
-sim_iter_BDML_iw <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+sim_iter_BDML_iw <- function(n, p, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
-  data <- generate_data(N, P, setting, sigma)
+  data <- generate_data(n, p, setting, sigma)
   fit_IW <- fit_mvn_iw_model(data)
   
   # extract results for IW model
-  IW_extraction <- extract_results_IW(fit_IW, data$gamma, "BDML-IW", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  IW_extraction <- extract_results_IW(fit_IW, data$alpha, "BDML-IW", additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
 
   # combine results
   IW_extraction

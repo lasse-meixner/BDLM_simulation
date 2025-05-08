@@ -34,7 +34,7 @@ style_mapping <- tibble(Method = ideal_order, shape = shape_values, color = colo
 
 make_results_table <- function(results){
   results_table <- results %>% 
-  group_by(Method, setting, sigma, N, P) %>% 
+  group_by(Method, setting, sigma, n, p) %>% 
   summarise(coverage = mean(catch), 
             rmse = sqrt(mean(squared_error)), 
             width = mean(interval_width)) # %>%

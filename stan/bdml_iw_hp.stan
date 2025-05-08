@@ -1,20 +1,20 @@
 data {
-  int<lower=1> J;
-  int<lower=0> N;
-  array[N] vector[J] x;
-  array[N] vector[2] y;
+  int<lower=1> p;
+  int<lower=0> n;
+  array[n] vector[p] X;
+  array[n] vector[2] Y;
 }
 parameters {
-  matrix[2, J] beta;
-  cov_matrix[2] Sigma;               // Covariance matrix for y
+  matrix[2, p] beta;
+  cov_matrix[2] Sigma;               // Covariance matrix for Y
   vector<lower=0>[2] sigma_beta;     // Different standard deviations for beta rows
 }
 model {
-  array[N] vector[2] mu;
+  array[n] vector[2] mu;
   
   // Linear predictor
-  for (n in 1:N)
-    mu[n] = beta * x[n];
+  for (n in 1:n)
+    mu[n] = beta * X[n];
   
   // Priors for beta coefficients
   beta[1] ~ normal(0, sigma_beta[1]);
@@ -25,7 +25,7 @@ model {
   Sigma ~ inv_wishart(4, diag_matrix(rep_vector(1, 2)));
   
   // Likelihood using the full covariance matrix
-  y ~ multi_normal(mu, Sigma);
+  Y ~ multi_normal(mu, Sigma);
 
   // Inv-Gamma(2,2) for sigma_beta^2
   target += inv_gamma_lpdf( square(sigma_beta) | 2, 2 )

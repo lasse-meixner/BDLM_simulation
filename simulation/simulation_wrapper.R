@@ -3,13 +3,13 @@ source("BDML_simulation_source.R")
 source("BLRs_simulation_source.R")
 
 ## Main entry point for simulation study
-run_simulation <- function(model_type, N, P, setting, sigma, simulation_size, datetime_tag) {
+run_simulation <- function(model_type, n, p, setting, sigma, simulation_size, datetime_tag) {
   #' Run Simulation Study
   #'
   #' @param model_type A string specifying the model type to use. Options are "BDML_b2", "BDML_r2d2", and "BLRs".
   #'                   Details on the models can be found in the respective source files.
-  #' @param N An integer specifying the number of observations.
-  #' @param P An integer specifying the number of predictors.
+  #' @param n An integer specifying the number of observations.
+  #' @param p An integer specifying the number of predictors.
   #' @param setting A string specifying the data generation setting.
   #'                Details on different settings can be found in the `generate_data_source.R` file.
   #' @param sigma A numeric value specifying the standard deviation of the noise.
@@ -26,7 +26,7 @@ run_simulation <- function(model_type, N, P, setting, sigma, simulation_size, da
   ## Generate simulation settings ----
   set.seed(abs(digest::digest2int("Bayesian Double Machine Learning for Causal Inference")))
   seeds <- sample.int(.Machine$integer.max, size = simulation_size)
-  sim_settings <- expand.grid(model_type = model_type, N = N, P = P, setting = setting, sigma = sigma, seed = seeds)
+  sim_settings <- expand.grid(model_type = model_type, n = n, p = p, setting = setting, sigma = sigma, seed = seeds)
   
   ## Run all simulations ----
   results_list <- lapply(1:nrow(sim_settings), function(i) {

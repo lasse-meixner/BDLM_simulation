@@ -7,112 +7,112 @@ library(mvtnorm)
 #------------------------------------------------------------------------------#
 # 1) ROOT PREP  
 #------------------------------------------------------------------------------#
-prepare_root_data <- function(N, P) {
-  list(X = matrix(rnorm(N * P), nrow = N), N = N, P = P)
+prepare_root_data <- function(n, p) {
+  list(X = matrix(rnorm(n * p), nrow = n), n = n, p = p)
 }
 
 #------------------------------------------------------------------------------#
 # 2) STRUCTURAL COMPONENTS BUILDER  
 #------------------------------------------------------------------------------#
-build_structures <- function(dat,
-                             theta_fun = function(P) rep(1/sqrt(P), P),
-                             beta_fun  = function(P) rnorm(P, 0, 1/sqrt(P))) {
-  dat$theta  <- theta_fun(dat$P)
-  dat$beta   <- beta_fun(dat$P)
-  dat$A_hat  <- as.numeric(dat$X %*% dat$theta)
-  dat$A      <- dat$A_hat + rnorm(dat$N)
-  dat$mu_hat <- as.numeric(dat$X %*% dat$beta)
-  dat
+build_structures <- function(data,
+                             gamma_fun = function(p) rep(1/sqrt(p), p),
+                             beta_rndcomp_fun  = function(p) rnorm(p, 0, 1/sqrt(p))) {
+  data$gamma  <- gamma_fun(data$p)
+  data$beta_rndcomp   <- beta_rndcomp_fun(data$p)
+  data$D_hat  <- as.numeric(data$X %*% data$gamma)
+  data$D      <- data$D_hat + rnorm(data$n)
+  data$mu_hat <- as.numeric(data$X %*% data$beta_rndcomp)
+  data
 }
 
 #------------------------------------------------------------------------------#
 # 3) OUTCOME BUILDER  
 #------------------------------------------------------------------------------#
-build_outcome <- function(dat, sigma) {
-  dat$Y     <- dat$gamma * dat$A +
-               dat$w     * dat$A_hat +
-               dat$mu_hat +
-               sigma * rnorm(dat$N)
-  dat$sigma <- sigma
-  dat
+build_outcome <- function(data, sigma) {
+  data$Y     <- data$alpha * data$D +
+               data$w * data$D_hat +
+               data$mu_hat +
+               sigma * rnorm(data$n)
+  data$sigma <- sigma
+  data
 }
 
 #------------------------------------------------------------------------------#
 # 4) SETTING-SPECIFIC GENERATORS  
 #------------------------------------------------------------------------------#
 
-generate_random_data <- function(N, P, sigma) {
-  dat <- prepare_root_data(N, P)
-  dat$gamma <- rnorm(1)
-  dat$w     <- rnorm(1)
-  dat <- build_structures(dat)
-  build_outcome(dat, sigma)
+generate_random_data <- function(n, p, sigma) {
+  data <- prepare_root_data(n, p)
+  data$alpha <- rnorm(1)
+  data$w     <- rnorm(1)
+  data <- build_structures(data)
+  build_outcome(data, sigma)
 }
 
-generate_fixed_data <- function(N, P, sigma) {
-  dat <- prepare_root_data(N, P)
-  dat$gamma <- 2
-  dat$w     <- -0.5
-  dat <- build_structures(dat)
-  build_outcome(dat, sigma)
+generate_fixed_data <- function(n, p, sigma) {
+  data <- prepare_root_data(n, p)
+  data$alpha <- 2
+  data$w     <- -0.5
+  data <- build_structures(data)
+  build_outcome(data, sigma)
 }
 
-generate_noisy_fs_data <- function(N, P, sigma) {
-  dat <- prepare_root_data(N, P)
-  dat$gamma <- 2
-  dat$w     <- -0.5
-  dat <- build_structures(
-    dat,
-    theta_fun = function(P) runif(P, 0, 1/sqrt(P)),
-    beta_fun  = function(P) rnorm(P, 0, 1/sqrt(P))
+generate_noisy_fs_data <- function(n, p, sigma) {
+  data <- prepare_root_data(n, p)
+  data$alpha <- 2
+  data$w     <- -0.5
+  data <- build_structures(
+    data,
+    gamma_fun = function(p) runif(p, 0, 1/sqrt(p)),
+    beta_rndcomp_fun  = function(p) rnorm(p, 0, 1/sqrt(p))
   )
-  build_outcome(dat, sigma)
+  build_outcome(data, sigma)
 }
 
-generate_hahn_data <- function(N, P, sigma) {
-  dat <- prepare_root_data(N, P)
-  dat$gamma <- 2
-  dat$w     <- -2
-  dat <- build_structures(dat)
-  build_outcome(dat, sigma)
+generate_hahn_data <- function(n, p, sigma) {
+  data <- prepare_root_data(n, p)
+  data$alpha <- 2
+  data$w     <- -2
+  data <- build_structures(data)
+  build_outcome(data, sigma)
 }
 
-generate_naive_data <- function(N, P, sigma) {
-  dat <- prepare_root_data(N, P)
-  dat$gamma <- 2
-  dat$w     <- 0
-  dat <- build_structures(dat)
-  build_outcome(dat, sigma)
+generate_naive_data <- function(n, p, sigma) {
+  data <- prepare_root_data(n, p)
+  data$alpha <- 2
+  data$w     <- 0
+  data <- build_structures(data)
+  build_outcome(data, sigma)
 }
 
-generate_mixed_data <- function(N, P, sigma) {
-  dat <- prepare_root_data(N, P)
-  dat$gamma <- 1
-  dat$w     <- -1
-  dat <- build_structures(
-    dat,
-    theta_fun = function(P) {
-      θ <- rep(1/sqrt(P), P)
-      θ[floor(P/2):P] <- 0
+generate_mixed_data <- function(n, p, sigma) {
+  data <- prepare_root_data(n, p)
+  data$alpha <- 1
+  data$w     <- -1
+  data <- build_structures(
+    data,
+    gamma_fun = function(p) {
+      θ <- rep(1/sqrt(p), p)
+      θ[floor(p/2):p] <- 0
       θ
     }
   )
   # mixed uses A_hat only
-  build_outcome(dat, sigma)
+  build_outcome(data, sigma)
 }
 
-generate_joint_data <- function(N, P, sigma = NULL) {
-  dat <- prepare_root_data(N, P)
-  dat$delta <- 0.5
-  B <- matrix(rnorm(P * 2), nrow = 2)
-  Sigma <- matrix(c(1, dat$delta, dat$delta, 1), 2, 2)
-  errors <- rmvnorm(N, mean = c(0, 0), sigma = Sigma)
+generate_joint_data <- function(n, p, sigma = NULL) {
+  data <- prepare_root_data(n, p)
+  data$delta <- 0.5
+  B <- matrix(rnorm(p * 2), nrow = 2)
+  Sigma <- matrix(c(1, data$delta, data$delta, 1), 2, 2)
+  errors <- rmvnorm(n, mean = c(0, 0), sigma = Sigma)
 
-  W <- dat$X %*% t(B) + errors
-  dat$Y <- W[,1]
-  dat$A <- W[,2]
-  dat$sigma <- NA
-  dat
+  W <- data$X %*% t(B) + errors
+  data$Y <- W[,1]
+  data$D <- W[,2]
+  data$sigma <- NA
+  data
 }
 
 #------------------------------------------------------------------------------#
@@ -120,20 +120,20 @@ generate_joint_data <- function(N, P, sigma = NULL) {
 #------------------------------------------------------------------------------#
 #' Generate data based on the specified setting
 #'
-#' @param N       Number of obs
-#' @param P       Number of predictors
+#' @param n       Number of obs
+#' @param p       Number of predictors
 #' @param setting One of "random", "fixed", "noisy_fs", 
 #'                "hahn", "naive", "mixed", "joint"
 #' @param sigma   Noise sd (ignored for "joint")
-generate_data <- function(N, P, setting, sigma = 1) {
+generate_data <- function(n, p, setting, sigma = 1) {
   switch(setting,
-    random    = generate_random_data(N, P, sigma),
-    fixed     = generate_fixed_data(N, P, sigma),
-    noisy_fs  = generate_noisy_fs_data(N, P, sigma),
-    hahn      = generate_hahn_data(N, P, sigma),
-    naive     = generate_naive_data(N, P, sigma),
-    mixed     = generate_mixed_data(N, P, sigma),
-    joint     = generate_joint_data(N, P),
+    random    = generate_random_data(n, p, sigma),
+    fixed     = generate_fixed_data(n, p, sigma),
+    noisy_fs  = generate_noisy_fs_data(n, p, sigma),
+    hahn      = generate_hahn_data(n, p, sigma),
+    naive     = generate_naive_data(n, p, sigma),
+    mixed     = generate_mixed_data(n, p, sigma),
+    joint     = generate_joint_data(n, p),
     stop("Unknown setting: ", setting)
   )
 }
