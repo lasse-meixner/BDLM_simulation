@@ -44,10 +44,10 @@ for(i in seq_len(nrow(grid))){
   first_plot <- get_combined_plots(results = subres, save = TRUE, datetimespec_tag = datetimespec_tag)
   # 2. zoomed in
   zoomed_in_1 <- get_combined_plots_zoom(results = subres, save = TRUE, 
-                                         zoom_in = c("BDML-LKJ-HP", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split"),
+                                         zoom_in = c("BDML-LKJ-HP", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split","OLS"),
                                          datetimespec_tag = datetimespec_tag)
   zoomed_in_2 <- get_combined_plots_zoom(results = subres, save = TRUE,
-                                         zoom_in = c("BDML-IW-HP", "BDML-LKJ-HP", "BDML-IW", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split"),
+                                         zoom_in = c("BDML-IW-HP", "BDML-LKJ-HP", "BDML-IW", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split","OLS"),
                                          datetimespec_tag = datetimespec_tag)
 }
 

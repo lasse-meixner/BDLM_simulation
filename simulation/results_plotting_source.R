@@ -16,7 +16,8 @@ ideal_order <- c(#"BDML-R2D2",
                  "HCPH", 
                  "Naive", 
                  "FDML-Full", 
-                 "FDML-Split")
+                 "FDML-Split",
+                 "OLS")
 shape_values <- c(19,
                   18, 
                   17, 
@@ -25,8 +26,9 @@ shape_values <- c(19,
                   2, 
                   0, 
                   3, 
-                  8)
-color_values <- c("firebrick4", "#F8766D", "darkorange2", "orange", "#00BA38", "green", "#619CFF", "purple", "#F564E3")
+                  8,
+                  NA)
+color_values <- c("firebrick4", "#F8766D", "darkorange2", "orange", "#00BA38", "green", "#619CFF", "purple", "#F564E3",grey(0.5))
 
 style_mapping <- tibble(Method = ideal_order, shape = shape_values, color = color_values)
 

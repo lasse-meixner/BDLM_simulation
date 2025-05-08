@@ -40,11 +40,16 @@ fit_BLRs <- function(data) {
     ix_step2 <- (floor(n/2) + 1):n
     d_res_step2 <- data$D[ix_step2] - fitted_d_step1$mu - data$X[ix_step2,] %*% fitted_d_step1$bR
     y_res_step2 <- data$Y[ix_step2] - fitted_y_step1$mu - data$X[ix_step2,] %*% fitted_y_step1$bR
+    
+    # 3. OLS
+    ols   <- lm(data$Y ~ data$D + data$X)
   })) # end of silenced BLR calls
 
   fitted_fdml_split <- lm(y_res_step2 ~ d_res_step2)
   # Ensure the return object is not printed
-  invisible(list(Naive = naive, HCPH = hcph, Linero = linero, "FDML-Full" = fitted_fdml_full, "FDML-Split" = fitted_fdml_split))
+  invisible(list(Naive = naive, HCPH = hcph, Linero = linero, 
+                 "FDML-Full" = fitted_fdml_full, "FDML-Split" = fitted_fdml_split,
+                 OLS = ols))
 }
 
 fit_mvn_iw_model <- function(data) {
@@ -160,7 +165,7 @@ sim_iter_BLRs <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machi
   
   # extract results for each BRL model
   BRLs_extraction <- lapply(names(fit_BRL), function(model_name) {
-    if (model_name %in% c("FDML-Full", "FDML-Split")) {
+    if (model_name %in% c("FDML-Full", "FDML-Split","OLS")) {
       extract_results_lm(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
     } else {
       extract_results_blr(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
