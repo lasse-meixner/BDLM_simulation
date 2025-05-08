@@ -13,17 +13,17 @@ load_src_files <- function(src_path = "../src/") {
 load_src_files()
 
 ## Compile the Stan models ----
-model_dml_b <- cmdstan_model("../dml_b.stan")
-model_dml_b2 <- cmdstan_model("../dml_b2.stan")
-model_dml_r2d2 <- cmdstan_model("../dml_r2d2.stan")
-model_dml_b2_iw <- cmdstan_model("../dml_b2_iw.stan")
+model_bdml_lkj <- cmdstan_model("../stan/bdml_lkj.stan")
+model_bdml_lkj_hp <- cmdstan_model("../stan/bdml_lkj_hp.stan")
+model_bdml_r2d2 <- cmdstan_model("../stan/bdml_r2d2.stan")
+model_bdml_iw_hp <- cmdstan_model("../stan/bdml_iw_hp.stan")
 
 ## Function to fit model B ----
-fit_model_dml_b <- function(data, seed) {
+fit_model_bdml_lkj <- function(data, seed) {
   N <- nrow(data$X)
   P <- ncol(data$X)
   
-  fitted_dml_b <- model_dml_b$sample(
+  fitted_bdml_lkj <- model_bdml_lkj$sample(
     data = list(K = 2, J = P, N = N, x = data$X, y = cbind(data$Y, data$A)),
     seed = seed,
     chains = 1,
@@ -35,11 +35,11 @@ fit_model_dml_b <- function(data, seed) {
 }
 
 ## Function to fit model B2 (hierarchical) ----
-fit_model_dml_b2 <- function(data, seed) {
+fit_model_bdml_lkj_hp <- function(data, seed) {
   N <- nrow(data$X)
   P <- ncol(data$X)
   
-  model_dml_b2$sample(
+  model_bdml_lkj_hp$sample(
     data = list(K = 2, J = P, N = N, x = data$X, y = cbind(data$Y, data$A)),
     seed = seed,
     chains = 1,
@@ -51,11 +51,11 @@ fit_model_dml_b2 <- function(data, seed) {
 }
 
 ## Function to fit model R2D2 ----
-fit_model_dml_r2d2 <- function(data, seed) {
+fit_model_bdml_r2d2 <- function(data, seed) {
   N <- nrow(data$X)
   P <- ncol(data$X)
 
-  model_dml_r2d2$sample(
+  model_bdml_r2d2$sample(
     data = list(J = P, N = N, x = data$X, y = cbind(data$Y, data$A), b = 0.5),
     seed = seed,
     chains = 1,
@@ -67,11 +67,11 @@ fit_model_dml_r2d2 <- function(data, seed) {
 }
 
 ## Function to fit model IW-Hierarchical ----
-fit_model_dml_b2_iw <- function(data, seed) {
+fit_model_bdml_iw_hp <- function(data, seed) {
   N <- nrow(data$X)
   P <- ncol(data$X)
   
-  model_dml_b2_iw$sample(
+  model_bdml_iw_hp$sample(
     data = list(J = P, N = N, x = data$X, y = cbind(data$Y, data$A)),
     seed = seed,
     chains = 1,
@@ -83,12 +83,12 @@ fit_model_dml_b2_iw <- function(data, seed) {
 }
 
 ## Function to extract results ----
-extract_results_dml <- function(fit, gamma, type, additional_results_info) {
+extract_results_bdml <- function(fit, gamma, type, additional_results_info) {
 #' Extract results from the DML-B2 model fit
 #'
 #' @param fit A fitted model object from which to extract results.
 #' @param gamma The true value of the parameter gamma, called "alpha" in the paper
-#' @param type The type of model used, e.g. "DML_B2"
+#' @param type The type of model used, e.g. "BDML-LKJ-HP"
 #' @return A data frame containing the extracted results, including:
 #'         - gamma_hat: The estimated value of gamma.
 #'         - squared_error: The squared error of the estimate.
@@ -132,38 +132,38 @@ extract_results_dml <- function(fit, gamma, type, additional_results_info) {
   table
 }
 
-## Main simulation function BDML_b for given setting ----
-sim_iter_BDML_b <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+## Main simulation function bdml_lkj for given setting ----
+sim_iter_bdml_lkj <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
-  fit <- fit_model_dml_b(data, seed)
-  res <- extract_results_dml(fit, data$gamma, type = "BDML_b", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  fit <- fit_model_bdml_lkj(data, seed)
+  res <- extract_results_bdml(fit, data$gamma, type = "BDML-LKJ", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
   res
 }
 
-## Main simulation function BDML_b2 for given setting ----
-sim_iter_BDML_b2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+## Main simulation function bdml_lkj_hp for given setting ----
+sim_iter_bdml_lkj_hp <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
-  fit <- fit_model_dml_b2(data, seed)
-  res <- extract_results_dml(fit, data$gamma, type = "BDML_b2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  fit <- fit_model_bdml_lkj_hp(data, seed)
+  res <- extract_results_bdml(fit, data$gamma, type = "BDML-LKJ-HP", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
   res
 }
 
-## Main simulation function BDML_r2d2 for given setting ----
-sim_iter_BDML_r2d2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+## Main simulation function bdml_r2d2 for given setting ----
+sim_iter_bdml_r2d2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
-  fit_r2d2 <- fit_model_dml_r2d2(data, seed)
-  res_r2d2 <- extract_results_dml(fit_r2d2, data$gamma, type = "BDML_r2d2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  fit_r2d2 <- fit_model_bdml_r2d2(data, seed)
+  res_r2d2 <- extract_results_bdml(fit_r2d2, data$gamma, type = "BDML-R2D2", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
   res_r2d2
 }
 
-## Main simulation function BDML_b2_iw for given setting ----
-sim_iter_BDML_b2_iw <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+## Main simulation function bdml_iw_hp for given setting ----
+sim_iter_bdml_iw_hp <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
-  fit_iw <- fit_model_dml_b2_iw(data, seed)
-  res_iw <- extract_results_dml(fit_iw, data$gamma, type = "BDML_b2_iw", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  fit_iw <- fit_model_bdml_iw_hp(data, seed)
+  res_iw <- extract_results_bdml(fit_iw, data$gamma, type = "BDML-IW-HP", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
   res_iw
 }

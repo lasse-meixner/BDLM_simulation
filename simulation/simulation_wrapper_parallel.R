@@ -6,7 +6,9 @@ source("BDML_simulation_source.R")
 source("BLRs_simulation_source.R")
 
 ## Main entry point for simulation study
-run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation_size, batch_size = 64, n_cores = 4, save_checkpoints = FALSE) {
+run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation_size, 
+                                    batch_size = 64, n_cores = 4, save_checkpoints = FALSE,
+                                    datetime_tag = format(Sys.time(), "%Y%m%d-%H%M")) {
     #' Run a parallelized simulation study
     #'
     #' @param model_type Character vector specifying the model types to be simulated (e.g., "BDML", "BLRs").
@@ -17,6 +19,8 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     #' @param simulation_size Integer specifying the total number of simulations to run per setting.
     #' @param batch_size Integer specifying the number of simulations to run in each batch. Default is 64.
     #' @param n_cores Integer specifying the number of CPU cores to use for parallel execution. Default is 4.
+    #' @param save_checkpoints Logical indicating whether to save intermediate results after each batch. Default is FALSE.
+    #' @param datetime_tag Character string for tagging the output files with the current date and time.
     #' @return A list of data frames, each containing the results of a batch of simulations.
     
 
@@ -39,20 +43,20 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
         " simulations for each model, with ", 
         sum(sim_settings$model_type == "BLRs")*5, 
         " BLR fits, ",
-        sum(sim_settings$model_type == "BDML_iw"),
-        " BDML_iw fits, ",
-        sum(sim_settings$model_type == "BDML_b2_iw"),
-        " BDML_b2_iw fits, ",
-        sum(sim_settings$model_type == "BDML_b"),
-        " BDML_b fits, ",
-        sum(sim_settings$model_type == "BDML_b2"), 
-        " BDML_b2 fits, and ",
-        sum(sim_settings$model_type == "BDML_r2d2"),
-        " BDML_r2d2 fits, on ", n_cores, " cores. For details, see the log file."))
+        sum(sim_settings$model_type == "BDML-IW"),
+        " BDML-IW fits, ",
+        sum(sim_settings$model_type == "BDML-IW-HP"),
+        " BDML-IW-HP fits, ",
+        sum(sim_settings$model_type == "BDML-LKJ"),
+        " BDML-LKJ fits, ",
+        sum(sim_settings$model_type == "BDML-LKJ-HP"), 
+        " BDML-LKJ-HP fits, and ",
+        sum(sim_settings$model_type == "BDML-R2D2"),
+        " BDML-R2D2 fits, on ", n_cores, " cores. For details, see the log file."))
 
      # Initialize logger
     if (!dir.exists("logs")) dir.create("logs")
-    log_file <- paste0("logs/simulation_log_", format(Sys.time(), "%Y%m%d%H%M%S"), ".log")
+    log_file <- paste0("logs/simulation_log_", datetime_tag, ".log")
     logger <- create.logger(logfile = log_file, level = "INFO")
     
     # Log simulation start time
@@ -94,11 +98,11 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
             # select the appropriate simulation function based on model type
             sim_iter <- switch(
                 batch_settings[i, "model_type"],
-                "BDML_b" = sim_iter_BDML_b,
-                "BDML_b2" = sim_iter_BDML_b2,
-                "BDML_r2d2" = sim_iter_BDML_r2d2,
-                "BDML_iw" = sim_iter_BDML_iw,
-                "BDML_b2_iw" = sim_iter_BDML_b2_iw,
+                "BDML-LKJ" = sim_iter_bdml_lkj,
+                "BDML-LKJ-HP" = sim_iter_bdml_lkj_hp,
+                "BDML-R2D2" = sim_iter_bdml_r2d2,
+                "BDML_IW" = sim_iter_bdml_iw,
+                "BDML_IW_HP" = sim_iter_bdml_iw_hp,
                 "BLRs" = sim_iter_BLRs,
                 stop("Unknown model type: ", batch_settings[i, "model_type"])
             )
@@ -163,7 +167,7 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
     
     # Save results to CSV
     if (!dir.exists("results")) {dir.create("results")}
-    result_file <- paste0("results/results_", format(Sys.time(), "%Y%m%d-%H%M"), ".csv")
+    result_file <- paste0("results/results_", datetime_tag, ".csv")
     write.csv(results, result_file, row.names = FALSE)
     
     info(logger, paste("Saved final results to", result_file))

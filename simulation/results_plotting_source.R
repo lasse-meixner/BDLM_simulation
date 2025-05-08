@@ -8,8 +8,8 @@ library(tidyverse)
 
 ### GLOBAL PLOTTING SETTINGS
 ideal_order <- c(#"BDML-R2D2", 
-                 "BDML-HP-IW",
-                 "BDML-HP-LKJ", 
+                 "BDML-IW-HP",
+                 "BDML-LKJ-HP", 
                  "BDML-IW",
                  "BDML-LKJ", 
                  "Linero", 
@@ -37,20 +37,20 @@ make_results_table <- function(results){
   group_by(Method, setting, sigma, N, P) %>% 
   summarise(coverage = mean(catch), 
             rmse = sqrt(mean(squared_error)), 
-            width = mean(interval_width)) %>%
-  mutate(Method = case_when(
-    Method == "BDML_r2d2" ~ "BDML-R2D2",
-    Method == "BDML_b2_iw" ~ "BDML-HP-IW",
-    Method == "BDML_b" ~ "BDML-LKJ",
-    Method == "BDML_b2" ~ "BDML-HP-LKJ",
-    Method == "BDML_iw" ~ "BDML-IW",
-    Method == "FDML_full" ~ "FDML-Full",
-    Method == "FDML_split" ~ "FDML-Split",
-    Method == "hahn" ~ "HCPH",
-    Method == "linero" ~ "Linero",
-    Method == "naive" ~ "Naive",
-    TRUE ~ Method  # keep other values unchanged
-  ))
+            width = mean(interval_width)) # %>%
+  # mutate(Method = case_when(
+  #   Method == "BDML_r2d2" ~ "BDML-R2D2",
+  #   Method == "BDML_b2_iw" ~ "BDML-HP-IW",
+  #   Method == "BDML_b" ~ "BDML-LKJ",
+  #   Method == "BDML_b2" ~ "BDML-HP-LKJ",
+  #   Method == "BDML_iw" ~ "BDML-IW",
+  #   Method == "FDML_full" ~ "FDML-Full",
+  #   Method == "FDML_split" ~ "FDML-Split",
+  #   Method == "hahn" ~ "HCPH",
+  #   Method == "linero" ~ "Linero",
+  #   Method == "naive" ~ "Naive",
+  #   TRUE ~ Method  # keep other values unchanged
+  # ))
 }
 
 sort_methods <- function(results_table){
@@ -108,7 +108,7 @@ get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, cu
 
 
 # Wrapper function to combine the plots for Coverage, Interval Width, and RMSE
-get_combined_plots <- function(results, save=TRUE){
+get_combined_plots <- function(results, save=TRUE, datetime_tag = format(Sys.time(), "%Y%m%d-%H")){
     p_1 <- get_individual_plot(results, "coverage", "Coverage")$plot
     p_2 <- get_individual_plot(results, "width", "Interval Width (log scale)", scale_y_log = TRUE)$plot
     p_3 <- get_individual_plot(results, "rmse", "RMSE (log scale)", scale_y_log = TRUE)$plot
@@ -126,13 +126,15 @@ get_combined_plots <- function(results, save=TRUE){
     final_plot <- plot_grid(combined_plots, legend, ncol = 1, rel_heights = c(1, 0.1))
     
     if (save) {
-        ggsave(paste0("results/plot_", format(Sys.time(), "%Y%m%d-%H"), ".pdf"), final_plot, width = 9, height = 3.5)
+        ggsave(paste0("results/plot_", datetime_tag, ".pdf"), final_plot, width = 9, height = 3.5)
     }
 
     return(final_plot)
 }
 
-get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-HP-IW", "BDML-HP-LKJ", "Linero")) {
+get_combined_plots_zoom <- function(results, save=TRUE, 
+                                    zoom_in = c("BDML-IW-HP", "BDML-LKJ-HP", "Linero"),
+                                    datetime_tag = format(Sys.time(), "%Y%m%d-%H")) {
 
     # extract the colors and shapes for the methods in zoom_in
     plot_mappings <- get_individual_plot(results, "coverage", "Coverage")$mapping
@@ -142,24 +144,27 @@ get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-HP-IW"
     # get shapes and colors for the methods in zoom_in
     extracted_colors <- zoom_mapping$mapped_colors
     extracted_shapes <- zoom_mapping$mapped_shapes
-
+    
     results_filtered <- results %>% 
-        # cheeky double rename to be able to filter using zoom_in
-        mutate(
-          Method = case_when(
-          Method == "BDML_r2d2" ~ "BDML-R2D2",
-          Method == "BDML_b2_iw" ~ "BDML-HP-IW",
-          Method == "BDML_b" ~ "BDML-LKJ",
-          Method == "BDML_b2" ~ "BDML-HP-LKJ",
-          Method == "BDML_iw" ~ "BDML-IW",
-          Method == "FDML_full" ~ "FDML-Full",
-          Method == "FDML_split" ~ "FDML-Split",
-          Method == "hahn" ~ "HCPH",
-          Method == "linero" ~ "Linero",
-          Method == "naive" ~ "Naive",
-          TRUE ~ Method  # keep other values unchanged
-          )) %>%
-        filter(Method %in% zoom_in)
+      filter(Method %in% zoom_in)
+    
+    # results_filtered <- results %>% 
+    #     # cheeky double rename to be able to filter using zoom_in
+    #     mutate(
+    #       Method = case_when(
+    #       Method == "BDML_r2d2" ~ "BDML-R2D2",
+    #       Method == "BDML_b2_iw" ~ "BDML-HP-IW",
+    #       Method == "BDML_b" ~ "BDML-LKJ",
+    #       Method == "BDML_b2" ~ "BDML-HP-LKJ",
+    #       Method == "BDML_iw" ~ "BDML-IW",
+    #       Method == "FDML_full" ~ "FDML-Full",
+    #       Method == "FDML_split" ~ "FDML-Split",
+    #       Method == "hahn" ~ "HCPH",
+    #       Method == "linero" ~ "Linero",
+    #       Method == "naive" ~ "Naive",
+    #       TRUE ~ Method  # keep other values unchanged
+    #       )) %>%
+    #     filter(Method %in% zoom_in)
 
     p_1_zoom <- get_individual_plot(results_filtered, "coverage", "Coverage", custom_colors = extracted_colors, custom_shapes = extracted_shapes)$plot
     p_2_zoom <- get_individual_plot(results_filtered, "width", "Interval Width (log scale)", scale_y_log = TRUE, custom_colors = extracted_colors, custom_shapes = extracted_shapes)$plot
@@ -178,7 +183,7 @@ get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-HP-IW"
     final_plot <- plot_grid(combined_plots, legend, ncol = 1, rel_heights = c(1, 0.1))
     
     if (save) {
-        ggsave(paste0("results/plot_zoom_", format(Sys.time(), "%Y%m%d-%H"), ".pdf"), final_plot, width = 9, height = 3.5)
+        ggsave(paste0("results/plot_zoom_", datetime_tag, ".pdf"), final_plot, width = 9, height = 3.5)
     }
 
     return(final_plot)

@@ -20,7 +20,7 @@ fit_BLRs <- function(data) {
     # 1. Hahn & Linero
     naive <- BLR(y = data$Y, XR = data$X, XF = as.matrix(data$A))
     fitted_ps <- BLR(y = data$A, XR = data$X)
-    hahn <- BLR(y = data$Y, XF = cbind(data$A - fitted_ps$yHat), XR = data$X)
+    hcph <- BLR(y = data$Y, XF = cbind(data$A - fitted_ps$yHat), XR = data$X)
     linero <- BLR(y = data$Y, XF = cbind(data$A, fitted_ps$yHat), XR = data$X)
 
     # 2. FDML
@@ -30,7 +30,7 @@ fit_BLRs <- function(data) {
     a_res_step2 <- data$A - fitted_a_step1$mu - data$X %*% fitted_a_step1$bR
     y_res_step2 <- data$Y - fitted_y_step1$mu - data$X %*% fitted_y_step1$bR
 
-    fitted_dml_full <- lm(y_res_step2 ~ a_res_step2)
+    fitted_fdml_full <- lm(y_res_step2 ~ a_res_step2)
 
     n <- dim(data$X)[1] # number of observations
     ix_step1 <- 1:(floor(n/2))
@@ -42,9 +42,9 @@ fit_BLRs <- function(data) {
     y_res_step2 <- data$Y[ix_step2] - fitted_y_step1$mu - data$X[ix_step2,] %*% fitted_y_step1$bR
   })) # end of silenced BLR calls
 
-  fitted_dml_split <- lm(y_res_step2 ~ a_res_step2)
+  fitted_fdml_split <- lm(y_res_step2 ~ a_res_step2)
   # Ensure the return object is not printed
-  invisible(list(naive = naive, hahn = hahn, linero = linero, FDML_full = fitted_dml_full, FDML_split = fitted_dml_split))
+  invisible(list(Naive = naive, HCPH = hcph, Linero = linero, "FDML-Full" = fitted_fdml_full, "FDML-Split" = fitted_fdml_split))
 }
 
 fit_mvn_iw_model <- function(data) {
@@ -160,7 +160,7 @@ sim_iter_BLRs <- function(N, P, setting, sigma, seed = sample.int(.Machine$integ
   
   # extract results for each BRL model
   BRLs_extraction <- lapply(names(fit_BRL), function(model_name) {
-    if (model_name %in% c("FDML_full", "FDML_split")) {
+    if (model_name %in% c("FDML-Full", "FDML-Split")) {
       extract_results_lm(fit_BRL[[model_name]], data$gamma, model_name, additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
     } else {
       extract_results_blr(fit_BRL[[model_name]], data$gamma, model_name, additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
@@ -178,7 +178,7 @@ sim_iter_BDML_iw <- function(N, P, setting, sigma, seed = sample.int(.Machine$in
   fit_IW <- fit_mvn_iw_model(data)
   
   # extract results for IW model
-  IW_extraction <- extract_results_IW(fit_IW, data$gamma, "BDML_iw", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  IW_extraction <- extract_results_IW(fit_IW, data$gamma, "BDML-IW", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
 
   # combine results
   IW_extraction

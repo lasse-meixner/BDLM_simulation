@@ -14,10 +14,8 @@
 misc.R
 
 # compiled stan models
-dml_b
-dml_b2
-dml_r2d2
-dml_b2_iw
+stan/bdml*
+!*.stan
 
 # auxiliary
 ForLasse/

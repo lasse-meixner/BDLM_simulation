@@ -1,5 +1,3 @@
-### RUNS A MINIMAL SIMULATION FOR TESTING with reps = 1
-
 # Use parallelized version by default
 source("simulation_wrapper_parallel.R")
 source("results_plotting_source.R")
@@ -14,10 +12,10 @@ results <- run_simulation_parallel(
   N = 200,
   P = 100,
   setting = "noisy_fs",
-  sigma = 1,
-  simulation_size = 3, # NOTE: TESTING: REP = 1
-  batch_size = 16,
-  n_cores = 4,
+  sigma = c(1, 2, 4),
+  simulation_size = 2000,
+  batch_size = 48,
+  n_cores = 24,
   datetime_tag = datetime_tag)
 
 ## Summarize and print results (for curiosity - all saved to disk automatically) ----
@@ -28,7 +26,7 @@ xtable::xtable(results_table)
 # 1.
 first_plot <- get_combined_plots(results, save = TRUE, datetime_tag = datetime_tag)
 # 2. zoomed in
-zoomed_in_1 <- get_combined_plots_zoom(results, save = TRUE,
+zoomed_in_1 <- get_combined_plots_zoom(results, save = TRUE, 
                                        zoom_in = c("BDML-LKJ-HP", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split"),
                                        datetime_tag = datetime_tag)
 zoomed_in_2 <- get_combined_plots_zoom(results, save = TRUE, 
