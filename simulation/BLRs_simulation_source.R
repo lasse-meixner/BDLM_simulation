@@ -153,17 +153,17 @@ extract_results_lm <- function(fit, alpha, method_name, additional_results_info)
 }
 
 # Main simulation function for BRLs for a given setting ----
-sim_iter_BLRs <- function(n, p, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+sim_iter_BLRs <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
-  data <- generate_data(n, p, setting, sigma)
+  data <- generate_data(n, p, R_Y2, R_D2, rho, alpha)
   fit_BRL <- fit_BLRs(data)
   
   # extract results for each BRL model
   BRLs_extraction <- lapply(names(fit_BRL), function(model_name) {
     if (model_name %in% c("FDML-Full", "FDML-Split")) {
-      extract_results_lm(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
+      extract_results_lm(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
     } else {
-      extract_results_blr(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
+      extract_results_blr(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
     }
   })
 
@@ -172,13 +172,13 @@ sim_iter_BLRs <- function(n, p, setting, sigma, seed = sample.int(.Machine$integ
 }
 
 # Main simulation function for BDML-IW for a given setting ----
-sim_iter_BDML_iw <- function(n, p, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+sim_iter_BDML_iw <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
-  data <- generate_data(n, p, setting, sigma)
+  data <- generate_data(n, p, R_Y2, R_D2, rho, alpha)
   fit_IW <- fit_mvn_iw_model(data)
   
   # extract results for IW model
-  IW_extraction <- extract_results_IW(fit_IW, data$alpha, "BDML-IW", additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
+  IW_extraction <- extract_results_IW(fit_IW, data$alpha, "BDML-IW", additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
 
   # combine results
   IW_extraction

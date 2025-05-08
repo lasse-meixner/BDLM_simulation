@@ -34,7 +34,7 @@ style_mapping <- tibble(Method = ideal_order, shape = shape_values, color = colo
 
 make_results_table <- function(results){
   results_table <- results %>% 
-  group_by(Method, setting, sigma, n, p) %>% 
+  group_by(Method, R_Y2, R_D2, rho, alpha, n, p) %>% 
   summarise(coverage = mean(catch), 
             rmse = sqrt(mean(squared_error)), 
             width = mean(interval_width)) # %>%
@@ -66,16 +66,15 @@ get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, cu
   methods_present <- intersect(unique(data$Method), style_mapping$Method)
   
   plot <- data %>%
-    filter(setting != "random") %>%
-    ggplot(aes(x = sigma, y = .data[[y_var]], color = Method, shape = Method)) +
+    ggplot(aes(x = R2_Y, y = .data[[y_var]], color = Method, shape = Method)) +
     geom_point() + geom_line() +
     theme_bw() +
-    xlab(TeX("$\\sigma_{\\epsilon}$ (log scale)")) + ylab(y_label) +
+    xlab(TeX("$Partial R^2_Y$")) + ylab(y_label) +
     theme(legend.position = "none") +
     labs(color = "", shape = "") +
     guides(color = guide_legend(nrow = 1, byrow = TRUE),
            shape = guide_legend(nrow = 1, byrow = TRUE)) +
-    scale_x_log10(breaks = unique(data$sigma))
+    scale_x_continuous(breaks = unique(data$sigma))
 
   if (scale_y_log) {
     plot <- plot + scale_y_log10()
@@ -108,7 +107,7 @@ get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, cu
 
 
 # Wrapper function to combine the plots for Coverage, Interval Width, and RMSE
-get_combined_plots <- function(results, save=TRUE, datetime_tag = format(Sys.time(), "%Y%m%d-%H")){
+get_combined_plots <- function(results, save=TRUE, datetimespec_tag){
     p_1 <- get_individual_plot(results, "coverage", "Coverage")$plot
     p_2 <- get_individual_plot(results, "width", "Interval Width (log scale)", scale_y_log = TRUE)$plot
     p_3 <- get_individual_plot(results, "rmse", "RMSE (log scale)", scale_y_log = TRUE)$plot
@@ -126,7 +125,7 @@ get_combined_plots <- function(results, save=TRUE, datetime_tag = format(Sys.tim
     final_plot <- plot_grid(combined_plots, legend, ncol = 1, rel_heights = c(1, 0.1))
     
     if (save) {
-        ggsave(paste0("results/plot_", datetime_tag, ".pdf"), final_plot, width = 9, height = 3.5)
+        ggsave(paste0("results/plot_", datetimespec_tag, ".pdf"), final_plot, width = 9, height = 3.5)
     }
 
     return(final_plot)
@@ -134,7 +133,7 @@ get_combined_plots <- function(results, save=TRUE, datetime_tag = format(Sys.tim
 
 get_combined_plots_zoom <- function(results, save=TRUE, 
                                     zoom_in = c("BDML-IW-HP", "BDML-LKJ-HP", "Linero"),
-                                    datetime_tag = format(Sys.time(), "%Y%m%d-%H")) {
+                                    datetimespec_tag) {
 
     # extract the colors and shapes for the methods in zoom_in
     plot_mappings <- get_individual_plot(results, "coverage", "Coverage")$mapping
@@ -183,7 +182,7 @@ get_combined_plots_zoom <- function(results, save=TRUE,
     final_plot <- plot_grid(combined_plots, legend, ncol = 1, rel_heights = c(1, 0.1))
     
     if (save) {
-        ggsave(paste0("results/plot_zoom_", datetime_tag, ".pdf"), final_plot, width = 9, height = 3.5)
+        ggsave(paste0("results/plot_zoom_", datetimespec_tag, ".pdf"), final_plot, width = 9, height = 3.5)
     }
 
     return(final_plot)

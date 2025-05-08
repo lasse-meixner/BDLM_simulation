@@ -3,16 +3,17 @@ source("BDML_simulation_source.R")
 source("BLRs_simulation_source.R")
 
 ## Main entry point for simulation study
-run_simulation <- function(model_type, n, p, setting, sigma, simulation_size, datetime_tag) {
+run_simulation <- function(model_type, n, p, R_Y2, R_D2, rho, alpha, simulation_size, datetime_tag) {
   #' Run Simulation Study
   #'
   #' @param model_type A string specifying the model type to use. Options are "BDML_b2", "BDML_r2d2", and "BLRs".
   #'                   Details on the models can be found in the respective source files.
   #' @param n An integer specifying the number of observations.
   #' @param p An integer specifying the number of predictors.
-  #' @param setting A string specifying the data generation setting.
-  #'                Details on different settings can be found in the `generate_data_source.R` file.
-  #' @param sigma A numeric value specifying the standard deviation of the noise.
+  #' @param R_Y2 Numeric vector specifying the partial R2 in the Y equation.
+  #' @param R_D2 Numeric vector specifying the R2 in the D equation.
+  #' @param rho Numeric vector specifying the correlation between beta and gamma.
+  #' @param alpha Numeric vector specifying the true value of the parameter of interest.
   #' @param simulation_size An integer specifying the number of simulations to run for each setting.
   #' @param datetime_tag Character string for tagging the output files with the current date and time.
   #' @return A data frame containing the combined results of all simulations.
@@ -26,7 +27,7 @@ run_simulation <- function(model_type, n, p, setting, sigma, simulation_size, da
   ## Generate simulation settings ----
   set.seed(abs(digest::digest2int("Bayesian Double Machine Learning for Causal Inference")))
   seeds <- sample.int(.Machine$integer.max, size = simulation_size)
-  sim_settings <- expand.grid(model_type = model_type, n = n, p = p, setting = setting, sigma = sigma, seed = seeds)
+  sim_settings <- expand.grid(model_type = model_type, n = n, p = p, R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, seed = seeds)
   
   ## Run all simulations ----
   results_list <- lapply(1:nrow(sim_settings), function(i) {

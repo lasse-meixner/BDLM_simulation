@@ -6,7 +6,7 @@ source("BDML_simulation_source.R")
 source("BLRs_simulation_source.R")
 
 ## Main entry point for simulation study
-run_simulation_parallel <- function(model_type, n, p, setting, sigma, simulation_size, 
+run_simulation_parallel <- function(model_type, n, p, R_Y2, R_D2, rho, alpha, simulation_size, 
                                     batch_size = 64, n_cores = 4, save_checkpoints = FALSE,
                                     datetime_tag = format(Sys.time(), "%Y%m%d-%H%M")) {
     #' Run a parallelized simulation study
@@ -14,8 +14,10 @@ run_simulation_parallel <- function(model_type, n, p, setting, sigma, simulation
     #' @param model_type Character vector specifying the model types to be simulated (e.g., "BDML", "BLRs").
     #' @param n Integer vector specifying the sample sizes for the simulations.
     #' @param p Integer vector specifying the number of predictors for the simulations.
-    #' @param setting Character vector specifying different settings for the simulations.
-    #' @param sigma Numeric vector specifying the noise levels for the simulations.
+    #' @param R_Y2 Numeric vector specifying the partial R2 in the Y equation.
+    #' @param R_D2 Numeric vector specifying the R2 in the D equation.
+    #' @param rho Numeric vector specifying the correlation between beta and gamma.
+    #' @param alpha Numeric vector specifying the true value of the parameter of interest.
     #' @param simulation_size Integer specifying the total number of simulations to run per setting.
     #' @param batch_size Integer specifying the number of simulations to run in each batch. Default is 64.
     #' @param n_cores Integer specifying the number of CPU cores to use for parallel execution. Default is 4.
@@ -30,8 +32,10 @@ run_simulation_parallel <- function(model_type, n, p, setting, sigma, simulation
     sim_settings <- expand.grid(model_type = model_type, 
                                 n = n, 
                                 p = p, 
-                                setting = setting, 
-                                sigma = sigma, 
+                                R_Y2  = R_Y2,
+                                R_D2  = R_D2,
+                                rho   = rho,
+                                alpha = alpha, 
                                 seed = seeds,
                                 stringsAsFactors = FALSE) |>
                                 arrange(model_type) # order by model type
@@ -69,8 +73,10 @@ run_simulation_parallel <- function(model_type, n, p, setting, sigma, simulation
     info(logger, paste("  model_type:", paste(model_type, collapse = ", ")))
     info(logger, paste("  n:", paste(n, collapse = ", ")))
     info(logger, paste("  p:", paste(p, collapse = ", ")))
-    info(logger, paste("  setting:", paste(setting, collapse = ", ")))
-    info(logger, paste("  sigma:", paste(sigma, collapse = ", ")))
+    info(logger, paste("  R_Y2:", paste(R_Y2, collapse = ", ")))
+    info(logger, paste("  R_D2:", paste(R_D2, collapse = ", ")))
+    info(logger, paste("  rho:", paste(rho, collapse = ", ")))
+    info(logger, paste("  alpha:", paste(alpha, collapse = ", ")))
     info(logger, paste("  simulation_size:", simulation_size))
     info(logger, paste("  batch_size:", batch_size))
     info(logger, paste("  n_cores:", n_cores))

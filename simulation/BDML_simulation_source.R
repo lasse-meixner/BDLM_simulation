@@ -133,37 +133,37 @@ extract_results_bdml <- function(fit, alpha, type, additional_results_info) {
 }
 
 ## Main simulation function bdml_lkj for given setting ----
-sim_iter_bdml_lkj <- function(n, p, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+sim_iter_bdml_lkj <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
-  data <- generate_data(n, p, setting, sigma)
+  data <- generate_data(n, p, R_Y2, R_D2, rho, alpha)
   fit <- fit_model_bdml_lkj(data, seed)
-  res <- extract_results_bdml(fit, data$alpha, type = "BDML-LKJ", additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
+  res <- extract_results_bdml(fit, data$alpha, type = "BDML-LKJ", additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
   res
 }
 
 ## Main simulation function bdml_lkj_hp for given setting ----
-sim_iter_bdml_lkj_hp <- function(n, p, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+sim_iter_bdml_lkj_hp <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
-  data <- generate_data(n, p, setting, sigma)
+  data <- generate_data(n, p, R_Y2, R_D2, rho, alpha)
   fit <- fit_model_bdml_lkj_hp(data, seed)
-  res <- extract_results_bdml(fit, data$alpha, type = "BDML-LKJ-HP", additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
+  res <- extract_results_bdml(fit, data$alpha, type = "BDML-LKJ-HP", additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
   res
 }
 
 ## Main simulation function bdml_r2d2 for given setting ----
-sim_iter_bdml_r2d2 <- function(n, p, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+sim_iter_bdml_r2d2 <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
-  data <- generate_data(n, p, setting, sigma)
+  data <- generate_data(n, p, R_Y2, R_D2, rho, alpha)
   fit_r2d2 <- fit_model_bdml_r2d2(data, seed)
-  res_r2d2 <- extract_results_bdml(fit_r2d2, data$alpha, type = "BDML-R2D2", additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
+  res_r2d2 <- extract_results_bdml(fit_r2d2, data$alpha, type = "BDML-R2D2", additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
   res_r2d2
 }
 
 ## Main simulation function bdml_iw_hp for given setting ----
-sim_iter_bdml_iw_hp <- function(n, p, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+sim_iter_bdml_iw_hp <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
-  data <- generate_data(n, p, setting, sigma)
+  data <- generate_data(n, p, R_Y2, R_D2, rho, alpha)
   fit_iw <- fit_model_bdml_iw_hp(data, seed)
-  res_iw <- extract_results_bdml(fit_iw, data$alpha, type = "BDML-IW-HP", additional_results_info = list(setting = setting, sigma = sigma, n = n, p = p))
+  res_iw <- extract_results_bdml(fit_iw, data$alpha, type = "BDML-IW-HP", additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
   res_iw
 }

@@ -13,8 +13,10 @@ results <- run_simulation_parallel(
   model_type = c("BDML-LKJ", "BDML-LKJ-HP", "BDML-IW", "BDML-IW-HP", "BLRs"),
   n = 200,
   p = 100,
-  setting = "noisy_fs",
-  sigma = 1,
+  R_Y2 = .5,
+  R_D2 = .5,
+  rho  = .5,
+  alpha= 1,
   simulation_size = 3, # NOTE: TESTING: REP = 1
   batch_size = 16,
   n_cores = 4,
@@ -25,12 +27,28 @@ results_table <- make_results_table(results) # from results_plotting_source.R
 xtable::xtable(results_table)
 
 ## create and save plots
-# 1.
-first_plot <- get_combined_plots(results, save = TRUE, datetime_tag = datetime_tag)
-# 2. zoomed in
-zoomed_in_1 <- get_combined_plots_zoom(results, save = TRUE,
-                                       zoom_in = c("BDML-LKJ-HP", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split"),
-                                       datetime_tag = datetime_tag)
-zoomed_in_2 <- get_combined_plots_zoom(results, save = TRUE, 
-                                       zoom_in = c("BDML-IW-HP", "BDML-LKJ-HP", "BDML-IW", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split"),
-                                       datetime_tag = datetime_tag)
+grid <- expand.grid(
+  R_D2 = unique(results$R_D2),
+  rho  = unique(results$rho),
+  alpha= unique(results$alpha)
+)
+
+for(i in seq_len(nrow(grid))){
+  args <- grid[i, ]
+  subres <- results %>%
+    filter(R_D2 == args$R_D2,
+           rho   == args$rho,
+           alpha == args$alpha)
+  
+  datetimespec_tag = paste0(datatime_tag, "_RD2_", args$R_D2, "_rho_", args$rho,
+                            "_alpha_", args$alpha)
+  # 1.
+  first_plot <- get_combined_plots(results = subres, save = TRUE, datetimespec_tag = datetimespec_tag)
+  # 2. zoomed in
+  zoomed_in_1 <- get_combined_plots_zoom(results = subres, save = TRUE, 
+                                         zoom_in = c("BDML-LKJ-HP", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split"),
+                                         datetimespec_tag = datetimespec_tag)
+  zoomed_in_2 <- get_combined_plots_zoom(results = subres, save = TRUE,
+                                         zoom_in = c("BDML-IW-HP", "BDML-LKJ-HP", "BDML-IW", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-Split"),
+                                         datetimespec_tag = datetimespec_tag)
+}
