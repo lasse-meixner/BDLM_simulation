@@ -23,12 +23,15 @@ model {
   // Separate priors for each row of beta
   beta[1] ~ normal(0, sigma_beta[1]);
   beta[2] ~ normal(0, sigma_beta[2]);
-  sigma_beta ~ inv_gamma(2, 2);
 
   L_Omega ~ lkj_corr_cholesky(4);
   L_sigma ~ cauchy(0, 2.5);
 
   y ~ multi_normal_cholesky(mu, L_Sigma);
+
+  // Inv-Gamma(2,2) for sigma_beta^2
+  target += inv_gamma_lpdf( square(sigma_beta) | 2, 2 )
+          + log(2 * sigma_beta);
 }
 generated quantities {
   real alpha;
