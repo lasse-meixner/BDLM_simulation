@@ -41,14 +41,41 @@ fit_BLRs <- function(data) {
     d_res_step2 <- data$D[ix_step2] - fitted_d_step1$mu - data$X[ix_step2,] %*% fitted_d_step1$bR
     y_res_step2 <- data$Y[ix_step2] - fitted_y_step1$mu - data$X[ix_step2,] %*% fitted_y_step1$bR
     
-    # 3. OLS
-    ols   <- lm(data$Y ~ data$D + data$X)
+    # 2.3 Cross‐fitted FDML
+    K <- 10
+    n <- nrow(data$X)
+    folds <- sample(rep(1:K, length.out = n))
+    d_residuals <- numeric(n)
+    y_residuals <- numeric(n)
+    
+    for (k in seq_len(K)) {
+      train_ix <- which(folds != k)
+      test_ix  <- which(folds == k)
+      
+      # first‐stage fits on training data
+      ps_fit <- BLR(y = data$D[train_ix], XR = data$X[train_ix, ])
+      y_fit  <- BLR(y = data$Y[train_ix], XR = data$X[train_ix, ])
+      
+      # predict on hold‐out fold
+      d_pred <- as.numeric(data$X[test_ix, ] %*% ps_fit$bR + ps_fit$mu)
+      y_pred <- as.numeric(data$X[test_ix, ] %*% y_fit$bR  + y_fit$mu)
+      
+      # residualize
+      d_residuals[test_ix] <- data$D[test_ix] - d_pred
+      y_residuals[test_ix] <- data$Y[test_ix] - y_pred
+    }
+    
   })) # end of silenced BLR calls
 
+  fitted_fdml_cf <- lm(y_residuals ~ d_residuals)
   fitted_fdml_split <- lm(y_res_step2 ~ d_res_step2)
+  
+  # 3. OLS
+  ols   <- lm(data$Y ~ data$D + data$X)
+  
   # Ensure the return object is not printed
   invisible(list(Naive = naive, HCPH = hcph, Linero = linero, 
-                 "FDML-Full" = fitted_fdml_full, "FDML-Split" = fitted_fdml_split,
+                 "FDML-Full" = fitted_fdml_full, "FDML-Split" = fitted_fdml_split, "FDML-XFit" = fitted_fdml_cf,
                  OLS = ols))
 }
 
@@ -165,7 +192,7 @@ sim_iter_BLRs <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machi
   
   # extract results for each BRL model
   BRLs_extraction <- lapply(names(fit_BRL), function(model_name) {
-    if (model_name %in% c("FDML-Full", "FDML-Split","OLS")) {
+    if (model_name %in% c("FDML-Full", "FDML-Split", "FDML-XFit", "OLS")) {
       extract_results_lm(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
     } else {
       extract_results_blr(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
