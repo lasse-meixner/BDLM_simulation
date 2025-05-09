@@ -70,12 +70,18 @@ fit_BLRs <- function(data) {
   fitted_fdml_cf <- lm(y_residuals ~ d_residuals)
   fitted_fdml_split <- lm(y_res_step2 ~ d_res_step2)
   
+  # 2.4 Alternative FDML
+  y_res_alt <- data$Y - naive$mu - data$X %*% naive$bR
+  d_res_alt <- data$D - fitted_ps$yHat
+  fitted_fdml_alt <- lm(y_res_alt ~ d_res_alt)
+  
   # 3. OLS
   ols   <- lm(data$Y ~ data$D + data$X)
   
   # Ensure the return object is not printed
   invisible(list(Naive = naive, HCPH = hcph, Linero = linero, 
-                 "FDML-Full" = fitted_fdml_full, "FDML-Split" = fitted_fdml_split, "FDML-XFit" = fitted_fdml_cf,
+                 "FDML-Full" = fitted_fdml_full, "FDML-Split" = fitted_fdml_split, 
+                 "FDML-XFit" = fitted_fdml_cf, "FDML-Alt" = fitted_fdml_alt,
                  OLS = ols))
 }
 
@@ -192,7 +198,7 @@ sim_iter_BLRs <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machi
   
   # extract results for each BRL model
   BRLs_extraction <- lapply(names(fit_BRL), function(model_name) {
-    if (model_name %in% c("FDML-Full", "FDML-Split", "FDML-XFit", "OLS")) {
+    if (model_name %in% c("FDML-Full", "FDML-Split", "FDML-XFit", "FDML-Alt", "OLS")) {
       extract_results_lm(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
     } else {
       extract_results_blr(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
