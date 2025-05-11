@@ -65,15 +65,21 @@ fit_mvn_iw_model <- function(data) {
       nu = 4, # IW prior degrees of freedom
       V = diag(1, 2, 2) # IW prior scale matrix 2x2
       ),
-    Mcmc = list(R=1000, keep=1, nprint=0))
+    Mcmc = list(R=3000, keep=1, nprint=0, burn=1000))
     }))
   # Return the transformed draws for alpha
   Sigma_draws <- draws$Sigmadraw # 1000 x (2*2)
   alpha_draws <- Sigma_draws[, 2] / Sigma_draws[, 4]
 }
 
-## Function to fit James-Stein IW shrinkage model ----
-fit_mvn_iw_js_model <- function(data) {
+## Function to fit exact James-Stein IW shrinkage model ----
+fit_mvn_iw_js_mat_model <- function(data) {
+
+  # assert that OLS is well-defined, i.e. that n > p
+  if (nrow(data$X) <= ncol(data$X)) {
+    message("Number of observations must be greater than number of predictors to fit James-Stein prior precision.")
+    return(NULL)
+  }
 
   # reg_data holds data for each regression as separate list
   reg_data <- NULL
@@ -91,10 +97,19 @@ fit_mvn_iw_js_model <- function(data) {
   delta_hat <- ols_ss$coefficients
 
   # shrinkage prior precision matrix
-  tau_gamma_inv <- ols_fs_res_var * (ncol(data$X)-2) / (t(gamma_hat) %*% (t(data$X) %*% data$X) %*% gamma_hat)
-  tau_delta_inv <- ols_ss_res_var * (ncol(data$X)-2) / (t(delta_hat) %*% (t(data$X) %*% data$X) %*% delta_hat)
+  nom_gamma_mat <- (ncol(data$X) - 2) * crossprod(data$X)
+  denom_gamma  <- as.numeric((t(gamma_hat) %*% crossprod(data$X) %*% gamma_hat) - ((ncol(data$X) - 2) * ols_fs_res_var))
+  gamma_precision_mat <- if (denom_gamma <= 0) {10*diag(ncol(data$X))} else {nom_gamma_mat / denom_gamma}
 
-  A_shrinkage <- diag(c(rep(tau_delta_inv, ncol(data$X)), rep(tau_gamma_inv, ncol(data$X))))
+  nom_delta_mat <- (ncol(data$X) - 2) * crossprod(data$X)
+  denom_delta  <- as.numeric((t(delta_hat) %*% crossprod(data$X) %*% delta_hat) - ((ncol(data$X) - 2) * ols_ss_res_var))
+  delta_precision_mat <- if (denom_delta <= 0) {10*diag(ncol(data$X))} else {nom_delta_mat / denom_delta}
+
+  # build exact JS prior shrinkage precision matrix by placing the two matrices in a block diagonal matrix
+  A_shrinkage <- rbind(
+    cbind(gamma_precision_mat, matrix(0, ncol(data$X), ncol(data$X))),
+    cbind(matrix(0, ncol(data$X), ncol(data$X)), delta_precision_mat)
+  )
 
   # Get 1000 draws
   invisible(capture.output({
@@ -106,7 +121,62 @@ fit_mvn_iw_js_model <- function(data) {
       nu = 4, # IW prior degrees of freedom
       V = diag(1, 2, 2) # IW prior scale matrix 2x2
       ),
-    Mcmc = list(R=1000, keep=1, nprint=0))
+    Mcmc = list(R=3000, keep=1, nprint=0, burnin = 1000))
+    }))
+  # Return the transformed draws for alpha
+  Sigma_draws <- draws$Sigmadraw # 1000 x (2*2)
+  alpha_draws <- Sigma_draws[, 2] / Sigma_draws[, 4]
+}
+
+# Function to fit approximate James-Stein IW shrinkage model ----
+fit_mvn_iw_js_I_model <- function(data) {
+
+  # assert that OLS is well-defined, i.e. that n > p
+  if (nrow(data$X) <= ncol(data$X)) {
+    message("Number of observations must be greater than number of predictors to fit James-Stein prior precision.")
+    return(NULL)
+  }
+
+  # reg_data holds data for each regression as separate list
+  reg_data <- NULL
+  reg_data[[1]] <- list(y = data$Y, X = data$X)
+  reg_data[[2]] <- list(y = data$A, X = data$X)
+
+  # build shrinkage prior precision matrix
+  # FS OLS
+  ols_fs <- lm(data$A ~ data$X - 1)
+  ols_fs_res_var <- sum(ols_fs$residuals^2) / (nrow(data$X) - ncol(data$X))
+  gamma_hat <- ols_fs$coefficients
+  # SS OLS
+  ols_ss <- lm(data$Y ~ data$X - 1)
+  ols_ss_res_var <- sum(ols_ss$residuals^2) / (nrow(data$X) - ncol(data$X))
+  delta_hat <- ols_ss$coefficients
+
+  # shrinkage prior precision matrix
+  nom_gamma <- (ncol(data$X) - 2)
+  denom_gamma  <- as.numeric((t(gamma_hat) %*% gamma_hat) - ((ncol(data$X) - 2) * (ols_fs_res_var/nrow(data$X))))
+  gamma_precision <- if (denom_gamma <= 0) {10} else {nom_gamma / denom_gamma}
+
+  nom_delta <- (ncol(data$X) - 2)
+  denom_delta  <- as.numeric((t(delta_hat) %*% delta_hat) - ((ncol(data$X) - 2) * (ols_ss_res_var/nrow(data$X))))
+  delta_precision <- if (denom_delta <= 0) {10} else {nom_delta / denom_delta}
+
+  # build exact JS prior shrinkage precision matrix by placing the precision values on the diagonal
+  A_shrinkage <- diag(
+    c(rep(gamma_precision, ncol(data$X)), rep(delta_precision, ncol(data$X)))
+  )
+
+  # Get 1000 draws
+  invisible(capture.output({
+    draws <- rsurGibbs(
+    Data = list(regdata = reg_data),
+    Prior = list(
+      betabar = rep(0, ncol(data$X)*2), # prior mean (2*P)x1
+      A = A_shrinkage, # prior precision (2*P)x(2*P)
+      nu = 4, # IW prior degrees of freedom
+      V = diag(1, 2, 2) # IW prior scale matrix 2x2
+      ),
+    Mcmc = list(R=3000, keep=1, nprint=0, burnin = 1000))
     }))
   # Return the transformed draws for alpha
   Sigma_draws <- draws$Sigmadraw # 1000 x (2*2)
@@ -218,12 +288,24 @@ sim_iter_BDML_iw <- function(N, P, setting, sigma, seed = sample.int(.Machine$in
   set.seed(seed)
   data <- generate_data(N, P, setting, sigma)
   fit_IW <- fit_mvn_iw_model(data)
-  fit_IW_js <- fit_mvn_iw_js_model(data)
   
   # extract results for IW models
   IW_extraction <- extract_results_IW(fit_IW, data$gamma, "BDML_iw", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
-  IW_js_extraction <- extract_results_IW(fit_IW_js, data$gamma, "BDML_iw_js", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
 
   # combine results
-  combined_results <- rbind(IW_extraction, IW_js_extraction)
+  IW_extraction
+}
+
+sim_iter_BDML_iw_js <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+  set.seed(seed)
+  data <- generate_data(N, P, setting, sigma)
+  fit_IW_js_mat <- fit_mvn_iw_js_mat_model(data)
+  fit_IW_js_I <- fit_mvn_iw_js_I_model(data)
+  
+  # extract results for IW models
+  IW_js_mat_extraction <- extract_results_IW(fit_IW_js_mat, data$gamma, "BDML_iw_js_mat", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  IW_js_I_extraction <- extract_results_IW(fit_IW_js_I, data$gamma, "BDML_iw_js_I", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+
+  # combine results
+  combined_results <- rbind(IW_js_mat_extraction, IW_js_I_extraction)
 }
