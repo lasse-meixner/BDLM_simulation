@@ -41,6 +41,8 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
         " BLR fits, ",
         sum(sim_settings$model_type == "BDML_iw"),
         " BDML_iw fits, ",
+        sum(sim_settings$model_type == "BDML_iw_js"),
+        " BDML_iw_js fits, ",
         sum(sim_settings$model_type == "BDML_b2_iw"),
         " BDML_b2_iw fits, ",
         sum(sim_settings$model_type == "BDML_b"),
