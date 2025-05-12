@@ -12,7 +12,8 @@ ideal_order <- c(#"BDML-R2D2",
                  "BDML-HP-LKJ", 
                  "BDML-IW",
                  "BDML-LKJ", 
-                 "BDML-IW-JS",
+                 "BDML-IW-JS-MAT",
+                 "BDML-IW-JS-I",
                  "Linero", 
                  "HCPH", 
                  "Naive", 
@@ -28,7 +29,17 @@ shape_values <- c(19,
                   0, 
                   3, 
                   8)
-color_values <- c("firebrick4", "#F8766D", "darkorange2", "orange", "darkorange3", "#00BA38", "green", "#619CFF", "purple", "#F564E3")
+color_values <- c("firebrick4", 
+                  "#F8766D", 
+                  "darkorange2", 
+                  "orange", 
+                  "black",
+                  "grey", 
+                  "#00BA38", 
+                  "green", 
+                  "#619CFF", 
+                  "purple", 
+                  "#F564E3")
 
 style_mapping <- tibble(Method = ideal_order, shape = shape_values, color = color_values)
 
