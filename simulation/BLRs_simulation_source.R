@@ -78,11 +78,40 @@ fit_BLRs <- function(data) {
   # 3. OLS
   ols   <- lm(data$Y ~ data$D + data$X)
   
+  # 4. Oracle estimator (closed‐form posterior of alpha)
+  n <- nrow(data$X)
+  p <- ncol(data$X)
+  sigma_V2 <- 1 - data$R_D2
+  lambda   <- ((1 - data$R_D2)/data$R_D2) * p
+  
+  # 1st‐stage posterior for gamma
+  V_gamma   <- sigma_V2 * solve(crossprod(data$X) + lambda * diag(p))
+  mu_gamma <- V_gamma %*% crossprod(data$X, data$D) / sigma_V2
+  
+  # compute the implied prior on beta|D,X
+  a        <- data$rho * sqrt(R_Y2/data$R_D2)
+  mu_beta  <- a * mu_gamma
+  Sigma_bg <- (data$R_Y2*(1 - data$rho^2)/p) * diag(p)
+  V_beta   <- Sigma_bg + a^2 * V_gamma
+  
+  # marginal covariance of Y
+  sigma_eps2 <- 1 - data$R_Y2
+  V_Y <- sigma_eps2 * diag(n) + data$X %*% V_beta %*% t(data$X)
+  
+  # posterior for alpha
+  V_alpha   <- 1 / as.numeric(crossprod(data$D, solve(V_Y, data$D)))
+  alpha_hat <- V_alpha * as.numeric(crossprod(data$D, solve(V_Y, data$Y - data$X %*% mu_beta)))
+  
+  oracle <- list(
+    alpha_hat = alpha_hat,       # so extract_results_blr() can grab it as fit$bF[1]
+    V_alpha   = V_alpha         # you can write a tiny get_interval_oracle() if you want CIs
+  )
+  
   # Ensure the return object is not printed
   invisible(list(Naive = naive, HCPH = hcph, Linero = linero, 
                  "FDML-Full" = fitted_fdml_full, "FDML-Split" = fitted_fdml_split, 
                  "FDML-XFit" = fitted_fdml_cf, "FDML-Alt" = fitted_fdml_alt,
-                 OLS = ols))
+                 OLS = ols, Oracle = oracle))
 }
 
 fit_mvn_iw_model <- function(data) {
@@ -190,6 +219,34 @@ extract_results_lm <- function(fit, alpha, method_name, additional_results_info)
   table
 }
 
+# Function to extract results for oracle ----
+extract_results_oracle <- function(fit, alpha, method_name, info) {
+  alpha_hat  <- fit$alpha_hat
+  se_alpha   <- sqrt(fit$V_alpha)
+  interval   <- alpha_hat + c(-1,1)*1.96*se_alpha
+  squared_error <- (alpha_hat - alpha)^2
+  catch <- check_interval(alpha, interval)
+  interval_width <- interval[2] - interval[1]
+  LCL <- interval[1]
+  UCL <- interval[2]
+  
+  table <- data.frame(
+    alpha_hat    = alpha_hat,
+    squared_error = squared_error,
+    LCL          = LCL,
+    UCL          = UCL,
+    catch        = catch,
+    interval_width = interval_width,
+    Method       = method_name
+  )
+  
+  # Append additional_results_info (setting parameters) to pass through for downstream analysis
+  for (name in names(additional_results_info)) {
+    table[[name]] <- additional_results_info[[name]]
+  }
+  table
+}
+
 # Main simulation function for BRLs for a given setting ----
 sim_iter_BLRs <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
@@ -200,6 +257,8 @@ sim_iter_BLRs <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machi
   BRLs_extraction <- lapply(names(fit_BRL), function(model_name) {
     if (model_name %in% c("FDML-Full", "FDML-Split", "FDML-XFit", "FDML-Alt", "OLS")) {
       extract_results_lm(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
+    } else if (model_name == "Oracle") {
+      extract_results_oracle(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
     } else {
       extract_results_blr(fit_BRL[[model_name]], data$alpha, model_name, additional_results_info = list(R_Y2 = R_Y2, R_D2 = R_D2, rho = rho, alpha = alpha, n = n, p = p))
     }
