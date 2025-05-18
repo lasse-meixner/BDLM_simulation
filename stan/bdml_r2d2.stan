@@ -75,7 +75,7 @@ transformed parameters {
 model {
   array[n] vector[2] mu;
   // Compute mean predictions
-  for (n in 1:n) {
+  for (i in 1:n) {
     mu[n][1] = dot_product(X[n], b1);
     mu[n][2] = dot_product(X[n], b2);
   }

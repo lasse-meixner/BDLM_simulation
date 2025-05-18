@@ -13,7 +13,7 @@ model {
   array[n] vector[2] mu;
   
   // Linear predictor
-  for (n in 1:n)
+  for (i in 1:n)
     mu[n] = beta * X[n];
   
   // Priors for beta coefficients

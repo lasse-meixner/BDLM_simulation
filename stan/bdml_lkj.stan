@@ -14,7 +14,7 @@ model {
   array[n] vector[k] mu;
   matrix[k, k] L_Sigma;
 
-  for (n in 1:n) {
+  for (i in 1:n) {
     mu[n] = beta * X[n];
 
   }
