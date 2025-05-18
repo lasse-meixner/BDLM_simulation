@@ -1,13 +1,12 @@
-# 1. Load required packages (install first if needed)
-if (!requireNamespace("stringr", quietly = TRUE)) install.packages("stringr")
-if (!requireNamespace("igraph",   quietly = TRUE)) install.packages("igraph")
-
 library(stringr)
 library(igraph)
 
+# 1. set working directory to source file location
+setwd("others/")
+
 # 2. List all R scripts in your target folder
 files_full <- list.files(
-  path       = "/Users/lauraliu/Library/CloudStorage/Dropbox/projects/sandbox/BDML/simulation",
+  path       = "../simulation",
   pattern    = "\\.[rR]$",
   recursive  = TRUE,
   full.names = TRUE
