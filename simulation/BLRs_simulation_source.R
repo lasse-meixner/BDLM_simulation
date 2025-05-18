@@ -61,7 +61,7 @@ fit_mvn_iw_model <- function(data) {
     Data = list(regdata = reg_data),
     Prior = list(
       betabar = rep(0, ncol(data$X)*2), # prior mean (2*P)x1
-      A = diag(1/ncol(data$X), ncol(data$X)*2), # prior precision (2*P)x(2*P)
+      A = diag(ncol(data$X), ncol(data$X)*2), # prior precision (2*P)x(2*P)
       nu = 4, # IW prior degrees of freedom
       V = diag(1, 2, 2) # IW prior scale matrix 2x2
       ),
@@ -98,17 +98,17 @@ fit_mvn_iw_js_mat_model <- function(data) {
 
   # shrinkage prior precision matrix
   nom_gamma_mat <- (ncol(data$X) - 2) * crossprod(data$X)
-  denom_gamma  <- as.numeric((t(gamma_hat) %*% crossprod(data$X) %*% gamma_hat) - ((ncol(data$X) - 2) * ols_fs_res_var))
+  denom_gamma  <- max(as.numeric((t(gamma_hat) %*% crossprod(data$X) %*% gamma_hat) - ((ncol(data$X) - 2) * ols_fs_res_var)), 1e-6)
   gamma_precision_mat <- if (denom_gamma <= 0) {10*diag(ncol(data$X))} else {nom_gamma_mat / denom_gamma}
 
   nom_delta_mat <- (ncol(data$X) - 2) * crossprod(data$X)
-  denom_delta  <- as.numeric((t(delta_hat) %*% crossprod(data$X) %*% delta_hat) - ((ncol(data$X) - 2) * ols_ss_res_var))
+  denom_delta  <- max(as.numeric((t(delta_hat) %*% crossprod(data$X) %*% delta_hat) - ((ncol(data$X) - 2) * ols_ss_res_var)), 1e-6)
   delta_precision_mat <- if (denom_delta <= 0) {10*diag(ncol(data$X))} else {nom_delta_mat / denom_delta}
 
   # build exact JS prior shrinkage precision matrix by placing the two matrices in a block diagonal matrix
   A_shrinkage <- rbind(
-    cbind(gamma_precision_mat, matrix(0, ncol(data$X), ncol(data$X))),
-    cbind(matrix(0, ncol(data$X), ncol(data$X)), delta_precision_mat)
+    cbind(delta_precision_mat, matrix(0, ncol(data$X), ncol(data$X))),
+    cbind(matrix(0, ncol(data$X), ncol(data$X)), gamma_precision_mat)
   )
 
   # Get 1000 draws
@@ -154,16 +154,16 @@ fit_mvn_iw_js_I_model <- function(data) {
 
   # shrinkage prior precision matrix
   nom_gamma <- (ncol(data$X) - 2)
-  denom_gamma  <- as.numeric((t(gamma_hat) %*% gamma_hat) - ((ncol(data$X) - 2) * (ols_fs_res_var/nrow(data$X))))
+  denom_gamma  <- max(as.numeric((t(gamma_hat) %*% gamma_hat) - ((ncol(data$X) - 2) * (ols_fs_res_var/nrow(data$X)))), 1e-6)
   gamma_precision <- if (denom_gamma <= 0) {10} else {nom_gamma / denom_gamma}
 
   nom_delta <- (ncol(data$X) - 2)
-  denom_delta  <- as.numeric((t(delta_hat) %*% delta_hat) - ((ncol(data$X) - 2) * (ols_ss_res_var/nrow(data$X))))
+  denom_delta  <- max(as.numeric((t(delta_hat) %*% delta_hat) - ((ncol(data$X) - 2) * (ols_ss_res_var/nrow(data$X)))), 1e-6)
   delta_precision <- if (denom_delta <= 0) {10} else {nom_delta / denom_delta}
 
   # build exact JS prior shrinkage precision matrix by placing the precision values on the diagonal
   A_shrinkage <- diag(
-    c(rep(gamma_precision, ncol(data$X)), rep(delta_precision, ncol(data$X)))
+    c(rep(delta_precision, ncol(data$X)), rep(gamma_precision, ncol(data$X)))
   )
 
   # Get 1000 draws
