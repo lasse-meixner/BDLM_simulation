@@ -12,6 +12,8 @@ ideal_order <- c(#"BDML-R2D2",
                  "BDML-HP-LKJ", 
                  "BDML-IW",
                  "BDML-LKJ", 
+                 "BDML-IW-JS-MAT",
+                 "BDML-IW-JS-I",
                  "Linero", 
                  "HCPH", 
                  "Naive", 
@@ -21,12 +23,25 @@ shape_values <- c(19,
                   18, 
                   17, 
                   15, 
+                  #16,
+                  10,
+                  12,
                   1, 
                   2, 
                   0, 
                   3, 
                   8)
-color_values <- c("firebrick4", "#F8766D", "darkorange2", "orange", "#00BA38", "green", "#619CFF", "purple", "#F564E3")
+color_values <- c("firebrick4", 
+                  "#F8766D", 
+                  "darkorange2", 
+                  "orange", 
+                  "black",
+                  "grey", 
+                  "#00BA38", 
+                  "green", 
+                  "#619CFF", 
+                  "purple", 
+                  "#F564E3")
 
 style_mapping <- tibble(Method = ideal_order, shape = shape_values, color = color_values)
 
@@ -44,6 +59,8 @@ make_results_table <- function(results){
     Method == "BDML_b" ~ "BDML-LKJ",
     Method == "BDML_b2" ~ "BDML-HP-LKJ",
     Method == "BDML_iw" ~ "BDML-IW",
+    Method == "BDML_iw_js_mat" ~ "BDML-IW-JS-MAT",
+    Method == "BDML_iw_js_I" ~ "BDML-IW-JS-I",
     Method == "FDML_full" ~ "FDML-Full",
     Method == "FDML_split" ~ "FDML-Split",
     Method == "hahn" ~ "HCPH",
@@ -139,9 +156,17 @@ get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-HP-IW"
     zoom_mapping <- plot_mappings %>% 
       filter(unique_Method %in% zoom_in) %>% 
       arrange(factor(unique_Method, levels = zoom_in))
-    # get shapes and colors for the methods in zoom_in
-    extracted_colors <- zoom_mapping$mapped_colors
-    extracted_shapes <- zoom_mapping$mapped_shapes
+  
+    # name the colors & shapes by the method so ggplot matches by name
+    extracted_colors <- setNames(
+      zoom_mapping$mapped_colors,
+      zoom_mapping$unique_Method
+    )
+    extracted_shapes <- setNames(
+      zoom_mapping$mapped_shapes,
+      zoom_mapping$unique_Method
+    )
+
 
     results_filtered <- results %>% 
         # cheeky double rename to be able to filter using zoom_in
@@ -152,6 +177,8 @@ get_combined_plots_zoom <- function(results, save=TRUE, zoom_in = c("BDML-HP-IW"
           Method == "BDML_b" ~ "BDML-LKJ",
           Method == "BDML_b2" ~ "BDML-HP-LKJ",
           Method == "BDML_iw" ~ "BDML-IW",
+          Method == "BDML_iw_js_mat" ~ "BDML-IW-JS-MAT",
+          Method == "BDML_iw_js_I" ~ "BDML-IW-JS-I",
           Method == "FDML_full" ~ "FDML-Full",
           Method == "FDML_split" ~ "FDML-Split",
           Method == "hahn" ~ "HCPH",
