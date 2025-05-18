@@ -40,13 +40,14 @@ for(i in seq_len(nrow(grid))){
   
   datetimespec_tag = paste0(datatime_tag, "_RD2_", args$R_D2, "_rho_", args$rho,
                           "_alpha_", args$alpha)
+  
   # 1.
-  first_plot <- get_combined_plots(results = subres, save = TRUE, datetimespec_tag = datetimespec_tag)
+  first_plot <- get_combined_plots(results = subres, save = file.path("results", datetime_tag), datetimespec_tag = datetimespec_tag)
   # 2. zoomed in
-  zoomed_in_1 <- get_combined_plots_zoom(results = subres, save = TRUE, 
+  zoomed_in_1 <- get_combined_plots_zoom(results = subres, save = file.path("results", datetime_tag), 
                                          zoom_in = c("BDML-LKJ-HP", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-XFit", "FDML-Alt", "OLS", "Oracle"),
                                          datetimespec_tag = datetimespec_tag)
-  zoomed_in_2 <- get_combined_plots_zoom(results = subres, save = TRUE,
+  zoomed_in_2 <- get_combined_plots_zoom(results = subres, save = file.path("results", datetime_tag),
                                          zoom_in = c("BDML-IW-HP", "BDML-LKJ-HP", "BDML-IW", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-XFit", "FDML-Alt", "OLS", "Oracle"),
                                          datetimespec_tag = datetimespec_tag)
 }

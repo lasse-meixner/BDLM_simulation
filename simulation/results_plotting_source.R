@@ -45,20 +45,7 @@ make_results_table <- function(results){
   group_by(Method, R_Y2, R_D2, rho, alpha, n, p) %>% 
   summarise(coverage = mean(catch), 
             rmse = sqrt(mean(squared_error)), 
-            width = mean(interval_width)) # %>%
-  # mutate(Method = case_when(
-  #   Method == "BDML_r2d2" ~ "BDML-R2D2",
-  #   Method == "BDML_b2_iw" ~ "BDML-HP-IW",
-  #   Method == "BDML_b" ~ "BDML-LKJ",
-  #   Method == "BDML_b2" ~ "BDML-HP-LKJ",
-  #   Method == "BDML_iw" ~ "BDML-IW",
-  #   Method == "FDML_full" ~ "FDML-Full",
-  #   Method == "FDML_split" ~ "FDML-Split",
-  #   Method == "hahn" ~ "HCPH",
-  #   Method == "linero" ~ "Linero",
-  #   Method == "naive" ~ "Naive",
-  #   TRUE ~ Method  # keep other values unchanged
-  # ))
+            width = mean(interval_width))
 }
 
 sort_methods <- function(results_table){
@@ -115,7 +102,9 @@ get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, cu
 
 
 # Wrapper function to combine the plots for Coverage, Interval Width, and RMSE
-get_combined_plots <- function(results, save=TRUE, datetimespec_tag){
+get_combined_plots <- function(results, 
+                               save="results/", 
+                               datetimespec_tag){
     p_1 <- get_individual_plot(results, "coverage", "Coverage")$plot
     p_2 <- get_individual_plot(results, "width", "Interval Width (log scale)", scale_y_log = TRUE)$plot
     p_3 <- get_individual_plot(results, "rmse", "RMSE (log scale)", scale_y_log = TRUE)$plot
@@ -132,14 +121,18 @@ get_combined_plots <- function(results, save=TRUE, datetimespec_tag){
     # Combine the plots and the legend in a vertical layout
     final_plot <- plot_grid(combined_plots, legend, ncol = 1, rel_heights = c(1, 0.1))
     
-    if (save) {
-        ggsave(paste0("results/plot_", datetimespec_tag, ".pdf"), final_plot, width = 9, height = 3.5)
+    if (!is.null(save)) {
+      # create the directory if it doesn't exist
+      if (!dir.exists(save)) {dir.create(save)}
+        ggsave(
+          filename = file.path(save, paste0("plot_", datetimespec_tag, ".pdf")), final_plot, width = 9, height = 3.5)
     }
 
     return(final_plot)
 }
 
-get_combined_plots_zoom <- function(results, save=TRUE, 
+get_combined_plots_zoom <- function(results, 
+                                    save = "results/",
                                     zoom_in = c("BDML-IW-HP", "BDML-LKJ-HP", "Linero"),
                                     datetimespec_tag) {
 
@@ -155,24 +148,6 @@ get_combined_plots_zoom <- function(results, save=TRUE,
     results_filtered <- results %>% 
       filter(Method %in% zoom_in)
     
-    # results_filtered <- results %>% 
-    #     # cheeky double rename to be able to filter using zoom_in
-    #     mutate(
-    #       Method = case_when(
-    #       Method == "BDML_r2d2" ~ "BDML-R2D2",
-    #       Method == "BDML_b2_iw" ~ "BDML-HP-IW",
-    #       Method == "BDML_b" ~ "BDML-LKJ",
-    #       Method == "BDML_b2" ~ "BDML-HP-LKJ",
-    #       Method == "BDML_iw" ~ "BDML-IW",
-    #       Method == "FDML_full" ~ "FDML-Full",
-    #       Method == "FDML_split" ~ "FDML-Split",
-    #       Method == "hahn" ~ "HCPH",
-    #       Method == "linero" ~ "Linero",
-    #       Method == "naive" ~ "Naive",
-    #       TRUE ~ Method  # keep other values unchanged
-    #       )) %>%
-    #     filter(Method %in% zoom_in)
-
     p_1_zoom <- get_individual_plot(results_filtered, "coverage", "Coverage", custom_colors = extracted_colors, custom_shapes = extracted_shapes)$plot
     p_2_zoom <- get_individual_plot(results_filtered, "width", "Interval Width (log scale)", scale_y_log = TRUE, custom_colors = extracted_colors, custom_shapes = extracted_shapes)$plot
     p_3_zoom <- get_individual_plot(results_filtered, "rmse", "RMSE (log scale)", scale_y_log = TRUE, custom_colors = extracted_colors, custom_shapes = extracted_shapes)$plot
@@ -189,8 +164,11 @@ get_combined_plots_zoom <- function(results, save=TRUE,
     # Combine the plots and the legend in a vertical layout
     final_plot <- plot_grid(combined_plots, legend, ncol = 1, rel_heights = c(1, 0.1))
     
-    if (save) {
-        ggsave(paste0("results/plot_zoom_", datetimespec_tag, ".pdf"), final_plot, width = 9, height = 3.5)
+    if (!is.null(save)) {
+      # create the directory if it doesn't exist
+      if (!dir.exists(save)) {dir.create(save)}
+        ggsave(
+          filename = file.path(save, paste0("plot_zoom_", datetimespec_tag, ".pdf")), final_plot, width = 9, height = 3.5)
     }
 
     return(final_plot)
