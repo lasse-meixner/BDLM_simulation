@@ -14,7 +14,7 @@ model {
   
   // Linear predictor
   for (i in 1:n)
-    mu[n] = beta * X[n];
+    mu[i] = beta * X[i];
   
   // Priors for beta coefficients
   beta[1] ~ normal(0, sigma_beta[1]);

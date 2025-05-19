@@ -76,8 +76,8 @@ model {
   array[n] vector[2] mu;
   // Compute mean predictions
   for (i in 1:n) {
-    mu[n][1] = dot_product(X[n], b1);
-    mu[n][2] = dot_product(X[n], b2);
+    mu[i][1] = dot_product(X[i], b1);
+    mu[i][2] = dot_product(X[i], b2);
   }
   
   // Priors for R2D2 parameters

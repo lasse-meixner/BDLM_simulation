@@ -15,7 +15,7 @@ model {
   matrix[2, 2] L_Sigma;
 
   for (i in 1:n) {
-    mu[n] = beta * X[n];
+    mu[i] = beta * X[i];
   }
 
   L_Sigma = diag_pre_multiply(L_sigma, L_Omega);
