@@ -102,46 +102,46 @@ run_simulation_parallel <- function(model_type, n, p, R_Y2, R_D2, rho, alpha, si
         # Run batch simulations in parallel
         batch_results <- pbmclapply(1:nrow(batch_settings), function(i) {
             # select the appropriate simulation function based on model type
-            sim_iter <- switch(
-                batch_settings[i, "model_type"],
-                "BDML-LKJ" = sim_iter_bdml_lkj,
-                "BDML-LKJ-HP" = sim_iter_bdml_lkj_hp,
-                "BDML-R2D2" = sim_iter_bdml_r2d2,
-                "BDML_IW" = sim_iter_bdml_iw,
-                "BDML_IW_HP" = sim_iter_bdml_iw_hp,
-                "BLRs" = sim_iter_BLRs,
-                stop("Unknown model type: ", batch_settings[i, "model_type"])
-            )
-        
-        info(logger, paste("Running simulation", i, "in batch", batch, "with model setting", batch_settings[i, "model_type"]))
-        
-        # Run simulation and handle errors and warnings (Note: this was a pain since some is thrown by low-level stan execution, this was gold: https://stackoverflow.com/questions/49694552/suppress-messages-from-underlying-c-function-in-r/49722545#49722545)
-        tryCatch({
-            # compute simulation results
-            output_str <- capture.output({
-                result <- do.call(sim_iter, as.list(batch_settings[i, -1]))  # pass settings to model-family-specific simulator function (excluding model_type)
-            }, type = "message")
-            # log warning from stderr (lower level STAN C++ warnings)
-            if (length((output_str)) > 0) {
-                lapply(output_str, function(line) warn(logger, paste("STDERR output during simulation", i, 
-                                                                  "in batch", batch, ":", 
-                                                                  "from model", batch_settings[i, "model_type"], ":", line)))
-            }
-            # return result
-            list(error = FALSE, result = result, model_type = batch_settings[i, "model_type"])
-            }, warning = function(w) {
-                # Log warnings
-                warning_message <- paste("Warning in simulation", i, "in batch", batch, ":", "from model", batch_settings[i, "model_type"], ":", w$message)
-                log4r::warn(logger, warning_message)
+            tryCatch({
+                sim_iter <- switch(
+                    batch_settings[i, "model_type"],
+                    "BDML-LKJ" = sim_iter_bdml_lkj,
+                    "BDML-LKJ-HP" = sim_iter_bdml_lkj_hp,
+                    "BDML-R2D2" = sim_iter_bdml_r2d2,
+                    "BDML-IW" = sim_iter_bdml_iw,
+                    "BDML-IW-HP" = sim_iter_bdml_iw_hp,
+                    "BLRs" = sim_iter_BLRs,
+                    stop("Unknown model type: ", batch_settings[i, "model_type"])
+                )
+            
+                info(logger, paste("Running simulation", i, "in batch", batch, "with model setting", batch_settings[i, "model_type"]))
+            
+            # Run simulation and handle errors and warnings (Note: this was a pain since some is thrown by low-level stan execution, this was gold: https://stackoverflow.com/questions/49694552/suppress-messages-from-underlying-c-function-in-r/49722545#49722545)
+                # compute simulation results
+                output_str <- capture.output({
+                    result <- do.call(sim_iter, as.list(batch_settings[i, -1]))  # pass settings to model-family-specific simulator function (excluding model_type)
+                }, type = "message")
+                # log warning from stderr (lower level STAN C++ warnings)
+                if (length((output_str)) > 0) {
+                    lapply(output_str, function(line) warn(logger, paste("STDERR output during simulation", i, 
+                                                                    "in batch", batch, ":", 
+                                                                    "from model", batch_settings[i, "model_type"], ":", line)))
+                }
                 # return result
                 list(error = FALSE, result = result, model_type = batch_settings[i, "model_type"])
-            }, error = function(e) {
-                # Log errors
-                error_message <- paste("Error in simulation", i, "in batch", batch, ":", "from model", batch_settings[i, "model_type"], ":", e$message)
-                log4r::error(logger, error_message)
-                # return NULL
-                list(error = TRUE, result = NULL, model_type = batch_settings[i, "model_type"])
-            })
+                }, warning = function(w) {
+                    # Log warnings
+                    warning_message <- paste("Warning in simulation", i, "in batch", batch, ":", "from model", batch_settings[i, "model_type"], ":", w$message)
+                    log4r::warn(logger, warning_message)
+                    # return result
+                    list(error = FALSE, result = result, model_type = batch_settings[i, "model_type"])
+                }, error = function(e) {
+                    # Log errors
+                    error_message <- paste("Error in simulation", i, "in batch", batch, ":", "from model", batch_settings[i, "model_type"], ":", e$message)
+                    log4r::error(logger, error_message)
+                    # return NULL
+                    list(error = TRUE, result = NULL, model_type = batch_settings[i, "model_type"])
+                })
         }, mc.cores = n_cores)  # Adjust cores for parallel execution
         
         # Check for errors and update failed_models

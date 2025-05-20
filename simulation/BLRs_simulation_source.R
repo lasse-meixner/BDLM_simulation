@@ -89,7 +89,7 @@ fit_BLRs <- function(data) {
   mu_gamma <- V_gamma %*% crossprod(data$X, data$D) / sigma_V2
   
   # compute the implied prior on beta|D,X
-  a        <- data$rho * sqrt(R_Y2/data$R_D2)
+  a        <- data$rho * sqrt(data$R_Y2/data$R_D2)
   mu_beta  <- a * mu_gamma
   Sigma_bg <- (data$R_Y2*(1 - data$rho^2)/p) * diag(p)
   V_beta   <- Sigma_bg + a^2 * V_gamma
@@ -127,11 +127,11 @@ fit_mvn_iw_model <- function(data) {
     Data = list(regdata = reg_data),
     Prior = list(
       betabar = rep(0, ncol(data$X)*2), # prior mean (2*p)x1
-      A = diag(1/ncol(data$X), ncol(data$X)*2), # prior precision (2*p)x(2*p)
+      A = diag(ncol(data$X), ncol(data$X)*2), # prior precision (2*p)x(2*p)
       nu = 4, # IW prior degrees of freedom
       V = diag(1, 2, 2) # IW prior scale matrix 2x2
       ),
-    Mcmc = list(R=12000, keep=1, nprint=0))
+    Mcmc = list(R=3000, keep=1, nprint=0))
     }))
   # Return the transformed draws for alpha
   Sigma_draws <- draws$Sigmadraw[-(1:2000), , drop = FALSE] # R x (2*2), remove burn-in
@@ -220,7 +220,7 @@ extract_results_lm <- function(fit, alpha, method_name, additional_results_info)
 }
 
 # Function to extract results for oracle ----
-extract_results_oracle <- function(fit, alpha, method_name, info) {
+extract_results_oracle <- function(fit, alpha, method_name, additional_results_info) {
   alpha_hat  <- fit$alpha_hat
   se_alpha   <- sqrt(fit$V_alpha)
   interval   <- alpha_hat + c(-1,1)*1.96*se_alpha
@@ -269,7 +269,7 @@ sim_iter_BLRs <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machi
 }
 
 # Main simulation function for BDML-IW for a given setting ----
-sim_iter_BDML_iw <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machine$integer.max, 1)) {
+sim_iter_bdml_iw <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
   data <- generate_data(n, p, R_Y2, R_D2, rho, alpha)
   fit_IW <- fit_mvn_iw_model(data)

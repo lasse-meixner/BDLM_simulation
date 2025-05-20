@@ -61,7 +61,7 @@ get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, cu
   methods_present <- intersect(unique(data$Method), style_mapping$Method)
   
   plot <- data %>%
-    ggplot(aes(x = R2_Y, y = .data[[y_var]], color = Method, shape = Method)) +
+    ggplot(aes(x = R_Y2, y = .data[[y_var]], color = Method, shape = Method)) +
     geom_point() + geom_line() +
     theme_bw() +
     xlab(TeX("$Partial R^2_Y$")) + ylab(y_label) +
