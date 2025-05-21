@@ -16,7 +16,6 @@ ideal_order <- c(#"BDML-R2D2",
                  "HCPH", 
                  "Naive", 
                  "FDML-Full", 
-                 # "FDML-Split",
                  "FDML-XFit",
                  "FDML-Alt",
                  "OLS",
@@ -31,10 +30,20 @@ shape_values <- c(19,
                   3, 
                   8,
                   7,
-                  NA,
-                  NA)
-color_values <- c("firebrick4", "#F8766D", "darkorange2", "orange", "#00BA38", "green", 
-                  "#619CFF", "steelblue4", "purple", "#F564E3", grey(0.5),"black")
+                  4,
+                  5)
+color_values <- c("firebrick4", 
+                  "#F8766D",
+                  "darkorange2",
+                  "orange",
+                  "#00BA38",
+                  "green", 
+                  "#619CFF",
+                  "steelblue4",
+                  "purple",
+                  "#F564E3",
+                  "lightgrey",
+                  "black")
 
 style_mapping <- tibble(Method = ideal_order, shape = shape_values, color = color_values)
 
@@ -104,7 +113,7 @@ get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, cu
 # Wrapper function to combine the plots for Coverage, Interval Width, and RMSE
 get_combined_plots <- function(results, 
                                save="results/", 
-                               datetimespec_tag){
+                               suffix = ""){
     p_1 <- get_individual_plot(results, "coverage", "Coverage")$plot
     p_2 <- get_individual_plot(results, "width", "Interval Width (log scale)", scale_y_log = TRUE)$plot
     p_3 <- get_individual_plot(results, "rmse", "RMSE (log scale)", scale_y_log = TRUE)$plot
@@ -125,7 +134,7 @@ get_combined_plots <- function(results,
       # create the directory if it doesn't exist
       if (!dir.exists(save)) {dir.create(save)}
         ggsave(
-          filename = file.path(save, paste0("plot_", datetimespec_tag, ".pdf")), final_plot, width = 9, height = 3.5)
+          filename = file.path(save, paste0("plot_", suffix, ".pdf")), final_plot, width = 9, height = 3.5)
     }
 
     return(final_plot)
@@ -134,7 +143,7 @@ get_combined_plots <- function(results,
 get_combined_plots_zoom <- function(results, 
                                     save = "results/",
                                     zoom_in = c("BDML-IW-HP", "BDML-LKJ-HP", "Linero"),
-                                    datetimespec_tag) {
+                                    suffix = "") {
 
     # extract the colors and shapes for the methods in zoom_in
     plot_mappings <- get_individual_plot(results, "coverage", "Coverage")$mapping
@@ -168,7 +177,7 @@ get_combined_plots_zoom <- function(results,
       # create the directory if it doesn't exist
       if (!dir.exists(save)) {dir.create(save)}
         ggsave(
-          filename = file.path(save, paste0("plot_zoom_", datetimespec_tag, ".pdf")), final_plot, width = 9, height = 3.5)
+          filename = file.path(save, paste0("plot_zoom_", suffix, ".pdf")), final_plot, width = 9, height = 3.5)
     }
 
     return(final_plot)
