@@ -1,5 +1,3 @@
-### RUNS A MINIMAL SIMULATION FOR TESTING with reps = 1
-
 # Use parallelized version by default
 source("simulation_wrapper_parallel.R")
 source("results_plotting_source.R")
@@ -13,13 +11,13 @@ results <- run_simulation_parallel(
   model_type = c("BDML-LKJ", "BDML-LKJ-HP", "BDML-IW", "BDML-IW-HP", "BLRs"),
   n = 200,
   p = 100,
-  R_Y2 = .5,
-  R_D2 = .5,
-  rho  = .5,
-  alpha= 1,
-  simulation_size = 2, # NOTE: TESTING: REP = 1
-  batch_size = 16,
-  n_cores = 4,
+  R_Y2 = c(0, 0.4, 0.8),
+  R_D2 = c(0, 0.4, 0.8),
+  rho  = c(-0.5, 0, 0.5),
+  alpha= c(0.25, 1, 4),
+  simulation_size = 2000,
+  batch_size = 48,
+  n_cores = 24,
   datetime_tag = datetime_tag)
 
 ## Summarize and print results (for curiosity - all saved to disk automatically) ----
@@ -47,6 +45,6 @@ for(i in seq_len(nrow(grid))){
   first_plot <- get_combined_plots(results = subres, save = file.path("results", datetime_tag), suffix = spec_tag)
   # 2. zoomed in
   zoomed_in <- get_combined_plots_zoom(results = subres, save = file.path("results", datetime_tag), 
-                                         zoom_in = c("BDML-LKJ-HP", "BDML-LKJ", "Linero", "HCPH", "Naive", "FDML-Full", "FDML-XFit", "FDML-Alt", "OLS", "Oracle"),
+                                         zoom_in = c("BDML-LKJ-HP", "BDML-IW-HP", "BDML-IW", "Linero", "Naive", "FDML-Full", "FDML-XFit", "OLS", "Oracle"),
                                          suffix = paste0(spec_tag, "_top_coverage"))
   }

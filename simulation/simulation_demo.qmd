@@ -107,7 +107,7 @@ results <- run_simulation(model_type = c("BDML_b2", "BLRs"), N = 200, P = 100, s
 ```{r}
 ## Summarize results ----
 results_table <- results |>
-  group_by(Method, setting, sigma, N, P) |>
+  group_by(Method, R_Y2, R_D2, rho, alpha, N, P) |>
   summarise(coverage = mean(catch), 
             rmse = sqrt(mean(squared_error)), 
             width = mean(interval_width))
@@ -127,7 +127,7 @@ results_parallel <- run_simulation_parallel(model_type = c("BDML_b2", "BDML_r2d2
 
 ## Summarize results ----
 results_parallel_table <- results_parallel |>
-  group_by(Method, setting, sigma, N, P) |>
+  group_by(Method, R_Y2, R_D2, rho, alpha, N, P) |>
   summarise(coverage = mean(catch), 
             rmse = sqrt(mean(squared_error)), 
             width = mean(interval_width))
