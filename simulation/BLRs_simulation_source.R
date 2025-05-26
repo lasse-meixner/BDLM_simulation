@@ -74,59 +74,110 @@ fit_mvn_iw_model <- function(data) {
 
 ## Function to fit exact James-Stein IW shrinkage model ----
 fit_mvn_iw_js_mat_model <- function(data) {
+  # --- 0. setup & checks ---
+  X    <- as.matrix(data$X)
+  Tn   <- nrow(X)
+  p <- ncol(X)
+  if (Tn <= p) stop("Need T > p for James–Stein precision.")
 
-  # assert that OLS is well-defined, i.e. that n > p
-  if (nrow(data$X) <= ncol(data$X)) {
-    message("Number of observations must be greater than number of predictors to fit James-Stein prior precision.")
-    return(NULL)
+  # --- 1. ordinary LS fits for gamma_hat & delta_hat + residual variances ---
+  ols_fs       <- lm(data$A ~ data$X - 1)
+  gamma_hat    <- coef(ols_fs)
+  ols_fs_res_var <- sum(resid(ols_fs)^2)/(Tn - p)
+
+  ols_ss       <- lm(data$Y ~ data$X - 1)
+  delta_hat    <- coef(ols_ss)
+  ols_ss_res_var <- sum(resid(ols_ss)^2)/(Tn - p)
+
+  # --- 2. Ledoit–Wolf (2022) shrinkage covariance of X ---
+  # Center X (subtract column means) but don’t scale by sd
+  Xc <- scale(X, center = TRUE, scale = FALSE)
+
+  # Compute the sample covariance matrix S_T = (1/T) Xc' Xc
+  ST <- crossprod(Xc) / Tn
+
+  # Compute the target scale ℓ_T = average variance = (1/p) tr(S_T)
+  ellT <- sum(diag(ST)) / p
+
+  # Form the deviation matrix D = S_T – ℓ_T I
+  D <- ST
+  diag(D) <- diag(ST) - ellT
+
+  # Compute squared Frobenius “distance” d^2 = ||S_T – ℓ_T I||_F^2
+  d2 <- sum(D^2)
+
+  # Estimate b^2_tilde = (1/T) ∑_t || x_t x_t' – S_T ||_F^2
+  b2_tilde <- 0
+  for (t in 1:Tn) {
+    xt       <- Xc[t, ]             # the t-th centered observation (1×p)
+    outer_xt <- tcrossprod(xt)      # x_t x_t'  (p×p)
+    # accumulate ||x_t x_t' – S_T||^2
+    b2_tilde <- b2_tilde + sum((outer_xt - ST)^2)
   }
+  b2_tilde <- b2_tilde / Tn         # average over T
 
-  # reg_data holds data for each regression as separate list
-  reg_data <- NULL
-  reg_data[[1]] <- list(y = data$Y, X = data$X)
-  reg_data[[2]] <- list(y = data$A, X = data$X)
+  # Shrinkage intensity c_T
+  cT <- max(0, min(b2_tilde / d2, 1))
 
-  # build shrinkage prior precision matrix
-  # FS OLS
-  ols_fs <- lm(data$A ~ data$X - 1)
-  ols_fs_res_var <- sum(ols_fs$residuals^2) / (nrow(data$X) - ncol(data$X))
-  gamma_hat <- ols_fs$coefficients
-  # SS OLS
-  ols_ss <- lm(data$Y ~ data$X - 1)
-  ols_ss_res_var <- sum(ols_ss$residuals^2) / (nrow(data$X) - ncol(data$X))
-  delta_hat <- ols_ss$coefficients
+  # Build the shrunk covariance:
+  # Σ_shrunk = c_T · ℓ_T·I + (1 - c_T) · S_T
+  Sigma_shrunk <- cT * ellT * diag(p) + (1 - cT) * ST
 
-  # shrinkage prior precision matrix
-  nom_gamma_mat <- (ncol(data$X) - 2) * crossprod(data$X)
-  denom_gamma  <- max(as.numeric((t(gamma_hat) %*% crossprod(data$X) %*% gamma_hat) - ((ncol(data$X) - 2) * ols_fs_res_var)), 1e-6)
-  gamma_precision_mat <- if (denom_gamma <= 0) {10*diag(ncol(data$X))} else {nom_gamma_mat / denom_gamma}
+  # Recover a shrunk cross-product analogous to X'X:
+  # X'X_shrunk = T · Σ_shrunk
+  XtX_shrunk <- Sigma_shrunk * Tn
 
-  nom_delta_mat <- (ncol(data$X) - 2) * crossprod(data$X)
-  denom_delta  <- max(as.numeric((t(delta_hat) %*% crossprod(data$X) %*% delta_hat) - ((ncol(data$X) - 2) * ols_ss_res_var)), 1e-6)
-  delta_precision_mat <- if (denom_delta <= 0) {10*diag(ncol(data$X))} else {nom_delta_mat / denom_delta}
 
-  # build exact JS prior shrinkage precision matrix by placing the two matrices in a block diagonal matrix
+  # --- 3. exact James–Stein prior precision with shrunk X'X ---
+  denom_gamma        <- max(
+    as.numeric(t(gamma_hat) %*% XtX_shrunk %*% gamma_hat) - ((p-2)*ols_fs_res_var),
+    1e-6
+  )
+  nom_gamma_mat      <- (p-2) * XtX_shrunk
+  gamma_precision_mat<- if (denom_gamma <= 0)
+                         10 * diag(p)
+                       else
+                         nom_gamma_mat / denom_gamma
+
+  denom_delta        <- max(
+    as.numeric(t(delta_hat) %*% XtX_shrunk %*% delta_hat) - ((p-2)*ols_ss_res_var),
+    1e-6
+  )
+  nom_delta_mat      <- (p-2) * XtX_shrunk
+  delta_precision_mat<- if (denom_delta <= 0)
+                         10 * diag(p)
+                       else
+                         nom_delta_mat / denom_delta
+
   A_shrinkage <- rbind(
-    cbind(delta_precision_mat, matrix(0, ncol(data$X), ncol(data$X))),
-    cbind(matrix(0, ncol(data$X), ncol(data$X)), gamma_precision_mat)
+    cbind(delta_precision_mat, matrix(0, p, p)),
+    cbind(matrix(0, p, p), gamma_precision_mat)
   )
 
-  # Get 1000 draws
+  # --- 4. run the same Gibbs sampler ---
+  reg_data <- list(
+    list(y = data$Y, X = data$X),
+    list(y = data$A, X = data$X)
+  )
+  
   invisible(capture.output({
     draws <- rsurGibbs(
-    Data = list(regdata = reg_data),
-    Prior = list(
-      betabar = rep(0, ncol(data$X)*2), # prior mean (2*P)x1
-      A = A_shrinkage, # prior precision (2*P)x(2*P)
-      nu = 4, # IW prior degrees of freedom
-      V = diag(1, 2, 2) # IW prior scale matrix 2x2
+      Data  = list(regdata = reg_data),
+      Prior = list(
+        betabar = rep(0, 2*p),
+        A       = A_shrinkage,
+        nu      = 4,
+        V       = diag(1, 2, 2)
       ),
-    Mcmc = list(R=3000, keep=1, nprint=0, burnin = 1000))
+      Mcmc = list(R = 3000, keep = 1, burnin = 1000))
     }))
-  # Return the transformed draws for alpha
-  Sigma_draws <- draws$Sigmadraw # 1000 x (2*2)
-  alpha_draws <- Sigma_draws[, 2] / Sigma_draws[, 4]
-}
+
+    Sigma_draws  <- draws$Sigmadraw   # 3000 x 4
+    alpha_draws  <- Sigma_draws[,2] / Sigma_draws[,4]
+    return(alpha_draws)
+  }
+
+
 
 # Function to fit approximate James-Stein IW shrinkage model ----
 fit_mvn_iw_js_I_model <- function(data) {
