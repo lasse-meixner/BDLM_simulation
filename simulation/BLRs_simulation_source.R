@@ -91,7 +91,9 @@ fit_mvn_iw_js_mat_model <- function(data) {
 
   # --- 2. Ledoit–Wolf (2022) shrinkage covariance of X ---
   # Center X (subtract column means) but don’t scale by sd
-  Xc <- scale(X, center = TRUE, scale = FALSE)
+  Xc <- X # scale(X, center = TRUE, scale = FALSE)
+          # In the previous OLS regression, we ignored the intercept, so we don't want to center here.
+          # Also, in many empirical work with ML, people usually normalize the data beforehand.
 
   # Compute the sample covariance matrix S_T = (1/T) Xc' Xc
   ST <- crossprod(Xc) / Tn
@@ -117,7 +119,7 @@ fit_mvn_iw_js_mat_model <- function(data) {
   b2_tilde <- b2_tilde / Tn         # average over T
 
   # Shrinkage intensity c_T
-  cT <- max(0, min(b2_tilde / d2, 1))
+  cT <- min(b2_tilde / d2, 1) # always nonnegative by construction
 
   # Build the shrunk covariance:
   # Σ_shrunk = c_T · ℓ_T·I + (1 - c_T) · S_T
@@ -127,27 +129,19 @@ fit_mvn_iw_js_mat_model <- function(data) {
   # X'X_shrunk = T · Σ_shrunk
   XtX_shrunk <- Sigma_shrunk * Tn
 
-
   # --- 3. exact James–Stein prior precision with shrunk X'X ---
+  nom_mat      <- (p-2) * XtX_shrunk # same numerator for both delta and gamma
   denom_gamma        <- max(
     as.numeric(t(gamma_hat) %*% XtX_shrunk %*% gamma_hat) - ((p-2)*ols_fs_res_var),
     1e-6
   )
-  nom_gamma_mat      <- (p-2) * XtX_shrunk
-  gamma_precision_mat<- if (denom_gamma <= 0)
-                         10 * diag(p)
-                       else
-                         nom_gamma_mat / denom_gamma
+  gamma_precision_mat<- nom_mat / denom_gamma # denominator is always positive by construction
 
   denom_delta        <- max(
     as.numeric(t(delta_hat) %*% XtX_shrunk %*% delta_hat) - ((p-2)*ols_ss_res_var),
     1e-6
   )
-  nom_delta_mat      <- (p-2) * XtX_shrunk
-  delta_precision_mat<- if (denom_delta <= 0)
-                         10 * diag(p)
-                       else
-                         nom_delta_mat / denom_delta
+  delta_precision_mat<- nom_mat / denom_delta
 
   A_shrinkage <- rbind(
     cbind(delta_precision_mat, matrix(0, p, p)),
