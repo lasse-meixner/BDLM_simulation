@@ -13,7 +13,7 @@ load_src_files <- function(src_path = "../src/") {
 load_src_files()
 
 # Function to fit Hahn model ----
-fit_BLRs <- function(data) {
+fit_BLRs <- function(data) { #todo: break this up, see chatty recent prompt
   # Note: since BLR doesn't allow control of low-level cat statements (typical bs R package SE), I suppress this manually
 
   invisible(capture.output({ # Suppress output from BLR calls
@@ -82,7 +82,7 @@ fit_BLRs <- function(data) {
   n <- nrow(data$X)
   p <- ncol(data$X)
   sigma_V2 <- 1 - data$R_D2
-  lambda   <- ((1 - data$R_D2)/data$R_D2) * p
+  lambda   <- ((1 - data$R_D2)/data$R_D2) * p # TODO: This isnt well defined when R_D2 = 0, so we need to think about something in this case, like a cap.
   
   # 1st‐stage posterior for gamma
   V_gamma   <- sigma_V2 * solve(crossprod(data$X) + lambda * diag(p))
