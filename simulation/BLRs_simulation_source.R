@@ -82,17 +82,23 @@ fit_BLRs <- function(data) { #todo: break this up, see chatty recent prompt
   n <- nrow(data$X)
   p <- ncol(data$X)
   sigma_V2 <- 1 - data$R_D2
-  lambda   <- ((1 - data$R_D2)/data$R_D2) * p # TODO: This isnt well defined when R_D2 = 0, so we need to think about something in this case, like a cap.
-  
-  # 1st‐stage posterior for gamma
-  V_gamma   <- sigma_V2 * solve(crossprod(data$X) + lambda * diag(p))
-  mu_gamma <- V_gamma %*% crossprod(data$X, data$D) / sigma_V2
-  
-  # compute the implied prior on beta|D,X
-  a        <- data$rho * sqrt(data$R_Y2/data$R_D2)
-  mu_beta  <- a * mu_gamma
-  Sigma_bg <- (data$R_Y2*(1 - data$rho^2)/p) * diag(p)
-  V_beta   <- Sigma_bg + a^2 * V_gamma
+  if (data$R_D2 == 0) {
+    V_beta <- (data$R_Y2/p) * diag(p)
+    Ybar   <- data$Y
+  } else {
+    lambda   <- ((1 - data$R_D2)/data$R_D2) * p 
+    
+    # 1st‐stage posterior for gamma
+    V_gamma   <- sigma_V2 * solve(crossprod(data$X) + lambda * diag(p))
+    mu_gamma <- V_gamma %*% crossprod(data$X, data$D) / sigma_V2
+    
+    # compute the implied prior on beta|D,X
+    a        <- data$rho * sqrt(data$R_Y2/data$R_D2)
+    mu_beta  <- a * mu_gamma
+    Sigma_bg <- (data$R_Y2*(1 - data$rho^2)/p) * diag(p)
+    V_beta   <- Sigma_bg + a^2 * V_gamma
+    Ybar     <- data$Y - data$X %*% mu_beta
+  }
   
   # marginal covariance of Y
   sigma_eps2 <- 1 - data$R_Y2
@@ -100,7 +106,7 @@ fit_BLRs <- function(data) { #todo: break this up, see chatty recent prompt
   
   # posterior for alpha
   V_alpha   <- 1 / as.numeric(crossprod(data$D, solve(V_Y, data$D)))
-  alpha_hat <- V_alpha * as.numeric(crossprod(data$D, solve(V_Y, data$Y - data$X %*% mu_beta)))
+  alpha_hat <- V_alpha * as.numeric(crossprod(data$D, solve(V_Y, Ybar)))
   
   oracle <- list(
     alpha_hat = alpha_hat,       # so extract_results_blr() can grab it as fit$bF[1]
