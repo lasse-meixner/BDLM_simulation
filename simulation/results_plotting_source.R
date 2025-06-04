@@ -15,7 +15,8 @@ ideal_order <- c(#"BDML-R2D2",
                  "Linero", 
                  "HCPH", 
                  "Naive", 
-                 "FDML-Full", 
+                 "FDML-Full",
+                 # Doesnt include "FDML-Split" currently 
                  "FDML-XFit",
                  "FDML-Alt",
                  "OLS",
@@ -73,12 +74,13 @@ get_individual_plot <- function(results, y_var, y_label, scale_y_log = FALSE, cu
     ggplot(aes(x = R_Y2, y = .data[[y_var]], color = Method, shape = Method)) +
     geom_point() + geom_line() +
     theme_bw() +
-    xlab(TeX("$Partial R^2_Y$")) + ylab(y_label) +
+    xlab(TeX("$Partial R^2_Y$")) + 
+    ylab(y_label) +
     theme(legend.position = "none") +
     labs(color = "", shape = "") +
     guides(color = guide_legend(nrow = 1, byrow = TRUE),
            shape = guide_legend(nrow = 1, byrow = TRUE)) +
-    scale_x_continuous(breaks = unique(data$sigma))
+    scale_x_continuous(breaks = unique(data$R_Y2))
 
   if (scale_y_log) {
     plot <- plot + scale_y_log10()
