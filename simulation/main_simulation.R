@@ -8,14 +8,14 @@ set.seed(abs(digest::digest2int("Bayesian Double Machine Learning for Causal Inf
 
 datetime_tag <- format(Sys.time(), "%Y%m%d-%H%M")
 results <- run_simulation_parallel(
-  model_type = c("BDML-LKJ", "BDML-LKJ-HP", "BDML-IW", "BDML-IW-HP", "BLRs"),
+  model_type = c("BLRs-baseline", "BLRs-FDML","BLRs-OLS-oracle"),
   n = 200,
   p = 100,
   R_Y2 = c(0, 0.4, 0.8),
-  R_D2 = c(0, 0.4, 0.8),
+  R_D2 = 0,
   rho  = c(-0.5, 0, 0.5),
   alpha= c(0.25, 1, 4),
-  simulation_size = 2000,
+  simulation_size = 500,
   batch_size = 48,
   n_cores = 24,
   datetime_tag = datetime_tag)
