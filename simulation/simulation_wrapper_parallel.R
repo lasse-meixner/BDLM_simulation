@@ -45,8 +45,12 @@ run_simulation_parallel <- function(model_type, n, p, R_Y2, R_D2, rho, alpha, si
         "START-UP: Running a total of ", 
         (nrow(sim_settings) / length(model_type)),
         " simulations for each model, with ", 
-        sum(sim_settings$model_type == "BLRs")*5, 
-        " BLR fits, ",
+        sum(sim_settings$model_type == "BLR-baseline") * 3, # Naive, HCHP, Linero
+        " BLR-baseline (Naive, HCHP, Linero) fits, ",
+        sum(sim_settings$model_type == "BLRs-FDML") * 4, # FDML-Full, FDML-Split, FDML-XFit, FDML-Alt
+        " BLRs-FDML fits, ",
+        sum(sim_settings$model_type == "BLRs-OLS-oracle") * 2, # OLS and oracle
+        " BLRs-OLS-oracle (OLS & oracle) fits, ",
         sum(sim_settings$model_type == "BDML-IW"),
         " BDML-IW fits, ",
         sum(sim_settings$model_type == "BDML-IW-HP"),
@@ -110,7 +114,9 @@ run_simulation_parallel <- function(model_type, n, p, R_Y2, R_D2, rho, alpha, si
                     "BDML-R2D2" = sim_iter_bdml_r2d2,
                     "BDML-IW" = sim_iter_bdml_iw,
                     "BDML-IW-HP" = sim_iter_bdml_iw_hp,
-                    "BLRs" = sim_iter_BLRs,
+                    "BLRs-baseline"   = sim_iter_BLRs_baseline,
+                    "BLRs-FDML"       = sim_iter_BLRs_FDML,
+                    "BLRs-OLS-oracle" = sim_iter_BLRs_OLS_oracle,
                     stop("Unknown model type: ", batch_settings[i, "model_type"])
                 )
             
