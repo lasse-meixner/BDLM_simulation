@@ -98,10 +98,12 @@ run_simulation_parallel <- function(model_type, N, P, setting, sigma, simulation
                 batch_settings[i, "model_type"],
                 "BDML_b" = sim_iter_BDML_b,
                 "BDML_b2" = sim_iter_BDML_b2,
+                "BDML_lkj_hp_VI" = sim_iter_BDML_lkj_hp_vi,
                 "BDML_r2d2" = sim_iter_BDML_r2d2,
                 "BDML_iw" = sim_iter_BDML_iw,
                 "BDML_iw_js" = sim_iter_BDML_iw_js,
                 "BDML_b2_iw" = sim_iter_BDML_b2_iw,
+                "BDML_iw_hp_VI" = sim_iter_BDML_iw_hp_vi,
                 "BLRs" = sim_iter_BLRs,
                 stop("Unknown model type: ", batch_settings[i, "model_type"])
             )

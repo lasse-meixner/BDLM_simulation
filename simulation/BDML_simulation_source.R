@@ -50,6 +50,19 @@ fit_model_dml_b2 <- function(data, seed) {
   )
 }
 
+fit_model_dml_lkj_hp_vi <- function(data, seed) {
+  N <- nrow(data$X)
+  P <- ncol(data$X)
+  
+  model_dml_b2$variational(
+    data = list(K = 2, J = P, N = N, x = data$X, y = cbind(data$Y, data$A)),
+    seed = seed,
+    iter = 1000,
+    show_messages = FALSE,
+    show_exceptions = TRUE
+  )
+}
+
 ## Function to fit model R2D2 ----
 fit_model_dml_r2d2 <- function(data, seed) {
   N <- nrow(data$X)
@@ -79,6 +92,19 @@ fit_model_dml_b2_iw <- function(data, seed) {
     refresh = 0,
     show_messages = FALSE,
     show_exceptions = FALSE
+  )
+}
+
+fit_model_dml_iw_hp_vi <- function(data, seed) {
+  N <- nrow(data$X)
+  P <- ncol(data$X)
+  
+  model_dml_b2_iw$variational(
+    data = list(J = P, N = N, x = data$X, y = cbind(data$Y, data$A)),
+    seed = seed,
+    iter = 1000,
+    show_messages = FALSE,
+    show_exceptions = TRUE
   )
 }
 
@@ -150,6 +176,15 @@ sim_iter_BDML_b2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$in
   res
 }
 
+## Main simulation function BDML_lkj_hp_vi for given setting ----
+sim_iter_BDML_lkj_hp_vi <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+  set.seed(seed)
+  data <- generate_data(N, P, setting, sigma)
+  fit_lkj_hp_vi <- fit_model_dml_lkj_hp_vi(data, seed)
+  res_lkj_hp_vi <- extract_results_dml(fit_lkj_hp_vi, data$gamma, type = "BDML_lkj_hp_vi", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res_lkj_hp_vi
+}
+
 ## Main simulation function BDML_r2d2 for given setting ----
 sim_iter_BDML_r2d2 <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
   set.seed(seed)
@@ -166,4 +201,13 @@ sim_iter_BDML_b2_iw <- function(N, P, setting, sigma, seed = sample.int(.Machine
   fit_iw <- fit_model_dml_b2_iw(data, seed)
   res_iw <- extract_results_dml(fit_iw, data$gamma, type = "BDML_b2_iw", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
   res_iw
+}
+
+## Main simulation function BDML_iw_hp_vi for given setting ----
+sim_iter_BDML_iw_hp_vi <- function(N, P, setting, sigma, seed = sample.int(.Machine$integer.max, 1)) {
+  set.seed(seed)
+  data <- generate_data(N, P, setting, sigma)
+  fit_iw_hp_vi <- fit_model_dml_iw_hp_vi(data, seed)
+  res_iw_hp_vi <- extract_results_dml(fit_iw_hp_vi, data$gamma, type = "BDML_iw_hp_vi", additional_results_info = list(setting = setting, sigma = sigma, N = N, P = P))
+  res_iw_hp_vi
 }
