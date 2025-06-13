@@ -11,12 +11,12 @@ set.seed(abs(digest::digest2int("Bayesian Double Machine Learning for Causal Inf
 datetime_tag <- format(Sys.time(), "%Y%m%d-%H%M")
 results <- run_simulation_parallel(
   # Available: "BDML-LKJ", "BDML-LKJ-HP", "BDML-IW", "BDML-IW-HP", "BDML-IW-JS-MAT", "BDML-IW-JS-I", "BLRs-baseline", "BLRs-FDML", "BLRs-OLS-oracle" 
-  model_type = c("BLRs-baseline", "BLRs-FDML","BLRs-OLS-oracle"), 
+  model_type = c("BDML-LKJ", "BDML-LKJ-HP", "BDML-IW", "BDML-IW-HP", "BDML-IW-JS-MAT", "BDML-IW-JS-I", "BLRs-baseline", "BLRs-FDML", "BLRs-OLS-oracle"), 
   n = 200,
   p = 100,
-  R_Y2 = c(0, 0.5),
-  R_D2 = c(0, 0.5),
-  rho  = .5,
+  R_Y2 = c(0, 0.4),
+  R_D2 = c(0, 0.4),
+  rho  = c(-0.5, 0),
   alpha= 1,
   simulation_size = 2, # NOTE: low testing rep
   batch_size = 16,
