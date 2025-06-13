@@ -12,22 +12,22 @@ functions {
   }
 }
 data {
-  int<lower=1> J;  // number of predictors
-  int<lower=0> N;  // number of observations
-  array[N] vector[J] x;  // predictors
-  array[N] vector[2] y;  // 2-dimensional response
+  int<lower=1> p;  // number of predictors
+  int<lower=0> n;  // number of observations
+  array[n] vector[p] X;  // predictors
+  array[n] vector[2] Y;  // 2-dimensional response
   
   // R2D2 prior parameter
   real<lower=0> b;
 }
 parameters {
   // Coefficients for each dimension
-  vector[J] zb1;  // standardized coefficients for dim 1
-  vector[J] zb2;  // standardized coefficients for dim 2
+  vector[p] zb1;  // standardized coefficients for dim 1
+  vector[p] zb2;  // standardized coefficients for dim 2
   
   // R2D2 parameters for each dimension
-  simplex[J] R2D2_phi1;  // local weights for dim 1
-  simplex[J] R2D2_phi2;  // local weights for dim 2
+  simplex[p] R2D2_phi1;  // local weights for dim 1
+  simplex[p] R2D2_phi2;  // local weights for dim 2
   real<lower=0,upper=1> R2D2_R2_1;  // R2 parameter for dim 1
   real<lower=0,upper=1> R2D2_R2_2;  // R2 parameter for dim 2
   
@@ -38,24 +38,24 @@ parameters {
 transformed parameters {
   real<lower=0> a_pi;  
   real<lower=0> a;  
-  vector<lower=0>[J] R2D2_alpha1;  // concentration vector for dim 1
-  vector<lower=0>[J] R2D2_alpha2;  // concentration vector for dim 2
+  vector<lower=0>[p] R2D2_alpha1;  // concentration vector for dim 1
+  vector<lower=0>[p] R2D2_alpha2;  // concentration vector for dim 2
   real<lower=0> R2D2_mean_R2_1;    // mean of R2 prior for dim 1
   real<lower=0> R2D2_mean_R2_2;    // mean of R2 prior for dim 2
   real<lower=0> R2D2_prec_R2_1;    // precision of R2 prior for dim 1
   real<lower=0> R2D2_prec_R2_2;    // precision of R2 prior for dim 2
   
-  vector[J] b1;  // coefficients for dim 1
-  vector[J] b2;  // coefficients for dim 2
+  vector[p] b1;  // coefficients for dim 1
+  vector[p] b2;  // coefficients for dim 2
   real R2D2_tau2_1;  // global scale for dim 1
   real R2D2_tau2_2;  // global scale for dim 2
   matrix[2, 2] L_Sigma;
   
   // Initialize R2D2 hyperparameters
-  a_pi = 1/(J^(b/2) * N^(b/2) * log(N));
-  a = a_pi*J;
-  R2D2_alpha1 = rep_vector(a_pi, J);
-  R2D2_alpha2 = rep_vector(a_pi, J);
+  a_pi = 1/(p^(b/2) * n^(b/2) * log(n));
+  a = a_pi*p;
+  R2D2_alpha1 = rep_vector(a_pi, p);
+  R2D2_alpha2 = rep_vector(a_pi, p);
   R2D2_mean_R2_1 = a/(a+b);
   R2D2_mean_R2_2 = a/(a+b);
   R2D2_prec_R2_1 = a + b;
@@ -73,11 +73,11 @@ transformed parameters {
   L_Sigma = diag_pre_multiply(L_sigma, L_Omega);
 }
 model {
-  array[N] vector[2] mu;
+  array[n] vector[2] mu;
   // Compute mean predictions
-  for (n in 1:N) {
-    mu[n][1] = dot_product(x[n], b1);
-    mu[n][2] = dot_product(x[n], b2);
+  for (i in 1:n) {
+    mu[i][1] = dot_product(X[i], b1);
+    mu[i][2] = dot_product(X[i], b2);
   }
   
   // Priors for R2D2 parameters
@@ -97,7 +97,7 @@ model {
   L_sigma ~ cauchy(0, 2.5);
   
   // Likelihood
-  y ~ multi_normal_cholesky(mu, L_Sigma);
+  Y ~ multi_normal_cholesky(mu, L_Sigma);
 }
 generated quantities {
   real alpha;
