@@ -160,52 +160,49 @@ fit_mvn_iw_model <- function(data) {
     alpha_draws <- Sigma_draws[, 2] / Sigma_draws[, 4]
 }
 
-## Function to fit exact James-Stein IW shrinkage model ----
+## Function to fit exact James–Stein IW shrinkage model ----
 fit_mvn_iw_js_mat_model <- function(data) {
   # --- 0. setup & checks ---
   X    <- as.matrix(data$X)
   Tn   <- nrow(X)
-  p <- ncol(X)
+  p    <- ncol(X)
   if (Tn <= p) stop("Need T > p for James–Stein precision.")
 
   # --- 1. ordinary LS fits for gamma_hat & delta_hat + residual variances ---
-  ols_fs       <- lm(data$A ~ data$X - 1)
-  gamma_hat    <- coef(ols_fs)
+  # SS on D
+  ols_fs         <- lm(data$D ~ data$X - 1)
+  gamma_hat      <- coef(ols_fs)
   ols_fs_res_var <- sum(resid(ols_fs)^2)/(Tn - p)
 
-  ols_ss       <- lm(data$Y ~ data$X - 1)
-  delta_hat    <- coef(ols_ss)
+  # SS on Y
+  ols_ss         <- lm(data$Y ~ data$X - 1)
+  delta_hat      <- coef(ols_ss)
   ols_ss_res_var <- sum(resid(ols_ss)^2)/(Tn - p)
 
   # --- 2. Ledoit–Wolf (2022) shrinkage covariance of X ---
-  # Center X (subtract column means) but don’t scale by sd
-  Xc <- X # scale(X, center = TRUE, scale = FALSE)
-          # In the previous OLS regression, we ignored the intercept, so we don't want to center here.
-          # Also, in many empirical work with ML, people usually normalize the data beforehand.
-
+  Xc    <- X  # centered if needed
+              # In the previous OLS regression, we ignored the intercept, so we don't want to center here.
+              # Also, in many empirical work with ML, people usually normalize the data beforehand.
   # Compute the sample covariance matrix S_T = (1/T) Xc' Xc
-  ST <- crossprod(Xc) / Tn
-
+  ST    <- crossprod(Xc) / Tn
   # Compute the target scale ℓ_T = average variance = (1/p) tr(S_T)
-  ellT <- sum(diag(ST)) / p
-
+  ellT  <- sum(diag(ST)) / p
   # Form the deviation matrix D = S_T – ℓ_T I
-  D <- ST
-  diag(D) <- diag(ST) - ellT
-
+  Dmat  <- ST
+  diag(Dmat) <- diag(ST) - ellT
   # Compute squared Frobenius “distance” d^2 = ||S_T – ℓ_T I||_F^2
-  d2 <- sum(D^2)
-
+  d2    <- sum(Dmat^2)
+  
   # Estimate b^2_tilde = (1/T) ∑_t || x_t x_t' – S_T ||_F^2
   b2_tilde <- 0
-  for (t in 1:Tn) {
-    xt       <- Xc[t, ]             # the t-th centered observation (1×p)
-    outer_xt <- tcrossprod(xt)      # x_t x_t'  (p×p)
-    # accumulate ||x_t x_t' – S_T||^2
-    b2_tilde <- b2_tilde + sum((outer_xt - ST)^2)
-  }
-  b2_tilde <- b2_tilde / Tn         # average over T
-
+    for (t in 1:Tn) {
+      xt       <- Xc[t, ]             # the t-th centered observation (1×p)
+      outer_xt <- tcrossprod(xt)      # x_t x_t'  (p×p)
+      # accumulate ||x_t x_t' – S_T||^2
+      b2_tilde <- b2_tilde + sum((outer_xt - ST)^2)
+    }
+    b2_tilde <- b2_tilde / Tn         # average over T
+  
   # Shrinkage intensity c_T
   cT <- min(b2_tilde / d2, 1) # always nonnegative by construction
 
@@ -218,18 +215,18 @@ fit_mvn_iw_js_mat_model <- function(data) {
   XtX_shrunk <- Sigma_shrunk * Tn
 
   # --- 3. exact James–Stein prior precision with shrunk X'X ---
-  nom_mat      <- (p-2) * XtX_shrunk # same numerator for both delta and gamma
-  denom_gamma        <- max(
+  nom_mat           <- (p-2) * XtX_shrunk
+  denom_gamma       <- max(
     as.numeric(t(gamma_hat) %*% XtX_shrunk %*% gamma_hat) - ((p-2)*ols_fs_res_var),
     1e-6
   )
-  gamma_precision_mat<- nom_mat / denom_gamma # denominator is always positive by construction
+  gamma_precision_mat <- nom_mat / denom_gamma
 
-  denom_delta        <- max(
+  denom_delta       <- max(
     as.numeric(t(delta_hat) %*% XtX_shrunk %*% delta_hat) - ((p-2)*ols_ss_res_var),
     1e-6
   )
-  delta_precision_mat<- nom_mat / denom_delta
+  delta_precision_mat <- nom_mat / denom_delta
 
   A_shrinkage <- rbind(
     cbind(delta_precision_mat, matrix(0, p, p)),
@@ -239,9 +236,9 @@ fit_mvn_iw_js_mat_model <- function(data) {
   # --- 4. run the same Gibbs sampler ---
   reg_data <- list(
     list(y = data$Y, X = data$X),
-    list(y = data$A, X = data$X)
+    list(y = data$D, X = data$X)
   )
-  
+
   invisible(capture.output({
     draws <- rsurGibbs(
       Data  = list(regdata = reg_data),
@@ -253,69 +250,75 @@ fit_mvn_iw_js_mat_model <- function(data) {
       ),
       Mcmc = list(R = 3000, keep = 1, nprint = 0)
     )
-    }))
-    Sigma_draws  <- draws$Sigmadraw[-(1:1000), , drop = FALSE] # discard first 1000 as burn-in
-    alpha_draws  <- Sigma_draws[,2] / Sigma_draws[,4]
-    return(alpha_draws)
-  }
+  }))
+  Sigma_draws <- draws$Sigmadraw[-(1:1000), , drop = FALSE]
+  alpha_draws <- Sigma_draws[,2] / Sigma_draws[,4]
+  return(alpha_draws)
+}
 
 
-
-# Function to fit approximate James-Stein IW shrinkage model ----
+# Function to fit approximate James–Stein IW shrinkage model ----
 fit_mvn_iw_js_I_model <- function(data) {
-
   # assert that OLS is well-defined, i.e. that n > p
   if (nrow(data$X) <= ncol(data$X)) {
-    message("Number of observations must be greater than number of predictors to fit James-Stein prior precision.")
+    message("Number of observations must be greater than number of predictors to fit James–Stein prior precision.")
     return(NULL)
   }
 
-  # reg_data holds data for each regression as separate list
-  reg_data <- NULL
-  reg_data[[1]] <- list(y = data$Y, X = data$X)
-  reg_data[[2]] <- list(y = data$A, X = data$X)
+  # set up reg_data for each equation (Y then D)
+  reg_data <- list(
+    list(y = data$Y, X = data$X),
+    list(y = data$D, X = data$X)
+  )
 
-  # build shrinkage prior precision matrix
-  # FS OLS
-  ols_fs <- lm(data$A ~ data$X - 1)
-  ols_fs_res_var <- sum(ols_fs$residuals^2) / (nrow(data$X) - ncol(data$X))
-  gamma_hat <- ols_fs$coefficients
-  # SS OLS
-  ols_ss <- lm(data$Y ~ data$X - 1)
-  ols_ss_res_var <- sum(ols_ss$residuals^2) / (nrow(data$X) - ncol(data$X))
-  delta_hat <- ols_ss$coefficients
+  # FS OLS on D
+  ols_fs         <- lm(data$D ~ data$X - 1)
+  ols_fs_res_var <- sum(resid(ols_fs)^2) / (nrow(data$X) - ncol(data$X))
+  gamma_hat      <- coef(ols_fs)
 
-  # shrinkage prior precision matrix
-  nom_gamma <- (ncol(data$X) - 2)
-  denom_gamma  <- max(as.numeric((t(gamma_hat) %*% gamma_hat) - ((ncol(data$X) - 2) * (ols_fs_res_var/nrow(data$X)))), 1e-6)
-  gamma_precision <- if (denom_gamma <= 0) {10} else {nom_gamma / denom_gamma}
+  # SS OLS on Y
+  ols_ss         <- lm(data$Y ~ data$X - 1)
+  ols_ss_res_var <- sum(resid(ols_ss)^2) / (nrow(data$X) - ncol(data$X))
+  delta_hat      <- coef(ols_ss)
 
-  nom_delta <- (ncol(data$X) - 2)
-  denom_delta  <- max(as.numeric((t(delta_hat) %*% delta_hat) - ((ncol(data$X) - 2) * (ols_ss_res_var/nrow(data$X)))), 1e-6)
-  delta_precision <- if (denom_delta <= 0) {10} else {nom_delta / denom_delta}
+  # shrinkage prior precision scalars
+  nom_gamma    <- ncol(data$X) - 2
+  denom_gamma  <- max(
+    as.numeric((t(gamma_hat) %*% gamma_hat) - (nom_gamma * (ols_fs_res_var / nrow(data$X)))),
+    1e-6
+  )
+  gamma_precision <- nom_gamma / denom_gamma
 
-  # build exact JS prior shrinkage precision matrix by placing the precision values on the diagonal
+  nom_delta    <- ncol(data$X) - 2
+  denom_delta  <- max(
+    as.numeric((t(delta_hat) %*% delta_hat) - (nom_delta * (ols_ss_res_var / nrow(data$X)))),
+    1e-6
+  )
+  delta_precision <- nom_delta / denom_delta
+
+  # build diagonal precision matrix
   A_shrinkage <- diag(
     c(rep(delta_precision, ncol(data$X)), rep(gamma_precision, ncol(data$X)))
   )
 
-  # Get 1000 draws
+  # run Gibbs sampler
   invisible(capture.output({
     draws <- rsurGibbs(
-    Data = list(regdata = reg_data),
-    Prior = list(
-      betabar = rep(0, ncol(data$X)*2), # prior mean (2*P)x1
-      A = A_shrinkage, # prior precision (2*P)x(2*P)
-      nu = 4, # IW prior degrees of freedom
-      V = diag(1, 2, 2) # IW prior scale matrix 2x2
+      Data  = list(regdata = reg_data),
+      Prior = list(
+        betabar = rep(0, ncol(data$X)*2),
+        A       = A_shrinkage,
+        nu      = 4,
+        V       = diag(1, 2, 2)
       ),
       Mcmc = list(R = 3000, keep = 1, nprint = 0)
     )
   }))
-  Sigma_draws  <- draws$Sigmadraw[-(1:1000), , drop = FALSE] # discard first 1000 as burn-in
-  alpha_draws  <- Sigma_draws[, 2] / Sigma_draws[, 4]
+  Sigma_draws <- draws$Sigmadraw[-(1:1000), , drop = FALSE]
+  alpha_draws <- Sigma_draws[,2] / Sigma_draws[,4]
   invisible(alpha_draws)
 }
+
 
 # ------------------------------------------------------------------------------- #
 # Extraction functions for different model objects 
