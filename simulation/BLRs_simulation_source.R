@@ -137,6 +137,8 @@ fit_BLRs_OLS_oracle <- function(data) {
   invisible(fit_list)
 }
 
+# Function to fit multivariate Inverse Wishart model ----
+# 4. Fit multivariate Inverse Wishart model (BDML-IW) ----
 fit_mvn_iw_model <- function(data) {
   reg_data <- list(
     list(y = data$Y, X = data$X),
@@ -144,18 +146,18 @@ fit_mvn_iw_model <- function(data) {
   )
   invisible(capture.output({
     draws <- rsurGibbs(
-    Data = list(regdata = reg_data),
-    Prior = list(
-      betabar = rep(0, ncol(data$X)*2), # prior mean (2*P)x1
-      A = diag(ncol(data$X), ncol(data$X)*2), # prior precision (2*P)x(2*P)
-      nu = 4, # IW prior degrees of freedom
-      V = diag(1, 2, 2) # IW prior scale matrix 2x2
-      ),
-    Mcmc = list(R=3000, keep=1, nprint=0, burn=1000))
+      Data = list(regdata = reg_data),
+      Prior = list(
+        betabar = rep(0, ncol(data$X)*2), # prior mean (2*P)x1
+        A = diag(ncol(data$X), ncol(data$X)*2), # prior precision (2*P)x(2*P)
+        nu = 4, # IW prior degrees of freedom
+        V = diag(1, 2, 2) # IW prior scale matrix 2x2
+        ),
+      Mcmc = list(R = 3000, keep = 1, nprint = 0)
+    )
     }))
-  # Return the transformed draws for alpha
-  Sigma_draws <- draws$Sigmadraw # 1000 x (2*2)
-  alpha_draws <- Sigma_draws[, 2] / Sigma_draws[, 4]
+    Sigma_draws  <- draws$Sigmadraw[-(1:1000), , drop = FALSE] # discard first 1000 as burn-in
+    alpha_draws <- Sigma_draws[, 2] / Sigma_draws[, 4]
 }
 
 ## Function to fit exact James-Stein IW shrinkage model ----
@@ -249,10 +251,10 @@ fit_mvn_iw_js_mat_model <- function(data) {
         nu      = 4,
         V       = diag(1, 2, 2)
       ),
-      Mcmc = list(R = 3000, keep = 1, burnin = 1000))
+      Mcmc = list(R = 3000, keep = 1, nprint = 0)
+    )
     }))
-
-    Sigma_draws  <- draws$Sigmadraw   # 3000 x 4
+    Sigma_draws  <- draws$Sigmadraw[-(1:1000), , drop = FALSE] # discard first 1000 as burn-in
     alpha_draws  <- Sigma_draws[,2] / Sigma_draws[,4]
     return(alpha_draws)
   }
@@ -307,11 +309,12 @@ fit_mvn_iw_js_I_model <- function(data) {
       nu = 4, # IW prior degrees of freedom
       V = diag(1, 2, 2) # IW prior scale matrix 2x2
       ),
-    Mcmc = list(R=1000, keep=1, nprint=0))
-    }))
-  # Return the transformed draws for alpha
-  Sigma_draws <- draws$Sigmadraw # 1000 x (2*2)
-  alpha_draws <- Sigma_draws[, 2] / Sigma_draws[, 4]
+      Mcmc = list(R = 3000, keep = 1, nprint = 0)
+    )
+  }))
+  Sigma_draws  <- draws$Sigmadraw[-(1:1000), , drop = FALSE] # discard first 1000 as burn-in
+  alpha_draws  <- Sigma_draws[, 2] / Sigma_draws[, 4]
+  invisible(alpha_draws)
 }
 
 # ------------------------------------------------------------------------------- #
@@ -508,6 +511,47 @@ sim_iter_bdml_iw <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Ma
     draws = draws,
     alpha = data$alpha,
     method_name = "BDML-IW",
+    additional_results_info = list(
+      R_Y2  = R_Y2,
+      R_D2  = R_D2,
+      rho   = rho,
+      alpha = alpha,
+      n     = n,
+      p     = p
+    )
+  )
+}
+
+# Main simulation function for BDML-IW-JS-MAT for a given setting ----
+sim_iter_bdml_iw_js_mat <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machine$integer.max, 1)) {
+  set.seed(seed)
+  data   <- generate_data(n, p, R_Y2, R_D2, rho, alpha)
+  draws  <- fit_mvn_iw_js_mat_model(data)
+  extract_results_IW(
+    draws = draws,
+    alpha = data$alpha,
+    method_name = "BDML-IW-JS-MAT",
+    additional_results_info = list(
+      R_Y2  = R_Y2,
+      R_D2  = R_D2,
+      rho   = rho,
+      alpha = alpha,
+      n     = n,
+      p     = p
+    )
+  )
+}
+
+
+# Main simulation function for BDML-IW-JS-I for a given setting ----
+sim_iter_bdml_iw_js_i <- function(n, p, R_Y2, R_D2, rho, alpha, seed = sample.int(.Machine$integer.max, 1)) {
+  set.seed(seed)
+  data   <- generate_data(n, p, R_Y2, R_D2, rho, alpha)
+  draws  <- fit_mvn_iw_js_I_model(data)
+  extract_results_IW(
+    draws = draws,
+    alpha = data$alpha,
+    method_name = "BDML-IW-JS-I",
     additional_results_info = list(
       R_Y2  = R_Y2,
       R_D2  = R_D2,
