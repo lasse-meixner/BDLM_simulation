@@ -216,9 +216,15 @@ get_combined_plots_zoom <- function(results,
 generate_stacked_plots <- function(results,
                                    datetime_tag = format(Sys.time(), "%Y%m%d-%H%M"),
                                    save_dir     = "results",
-                                   zoom_in      = c("BDML-LKJ-HP", "BDML-IW-HP",
-                                                    "BDML-IW",     "Linero",
-                                                    "Oracle")) {
+                                   zoom_in      = c("BDML-LKJ",
+                                                    "BDML-LKJ-HP",
+                                                    "BDML-IW",
+                                                    "BDML-IW-HP",
+                                                    "BDML-IW-JS-MAT",
+                                                    "BDML-IW-JS-I",
+                                                    "BLRs-baseline",
+                                                    "BLRs-FDML",
+                                                    "BLRs-OLS-oracle")) {
   # create output folder
   out_dir <- file.path(save_dir, datetime_tag)
   if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)

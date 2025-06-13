@@ -31,4 +31,4 @@ xtable::xtable(results_table)
 # 1. all
 generate_stacked_plots(results, datetime_tag)
 # 2. zoomed in
-generate_zoomed_in_plots(results, datetime_tag, zoom_in = c("BDML-IW-JS-MAT", "BDML-IW-JS-I", "BDML-IW", "Linero"))
+generate_stacked_plots(results, datetime_tag, zoom_in = c("BDML-IW-JS-MAT", "BDML-IW-JS-I", "BDML-IW", "Linero"))

@@ -187,10 +187,11 @@ run_simulation_parallel <- function(model_type, n, p, R_Y2, R_D2, rho, alpha, si
     info(logger, paste("Saved final results to", result_file))
 
     # Log information about failed models
+    simulations_per_model <- nrow(sim_settings) / length(model_type)
     if (length(failed_models) > 0) {
         info(logger, "FITTING SUMMARY: The following models failed:")
         for (model in names(failed_models)) {
-            info(logger, paste("  ", model, ": ", failed_models[model], "failed simulations out of ", simulation_size, "total simulations"))
+            info(logger, paste("  ", model, ": ", failed_models[model], "failed simulations out of ", simulations_per_model, "total simulations"))
         }
     }
 
