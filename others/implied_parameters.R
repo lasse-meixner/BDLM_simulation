@@ -69,8 +69,7 @@ AsymSB_table <- function(alpha_vals, R_D2_vals) {
     asym_table <- asym_grid %>%
         pivot_wider(
             names_from = R_D2,
-            values_from = AsymSB,
-            names_prefix = "R_D2 = "
+            values_from = AsymSB
         ) %>%
         column_to_rownames("alpha")
 
@@ -115,3 +114,17 @@ r_DY_9x9_table <- function(R_Y2_vals, R_D2_vals, rho_vals, alpha_vals) {
 out_r_DY_table <- r_DY_9x9_table(R_Y2_vals, R_D2_vals, rho_vals, alpha_vals)
 cat("\nr_DY 9x9 Table (R_Y2/R_D2 combinations in rows, rho/alpha combinations in columns):\n")
 print(round(out_r_DY_table, 3))
+
+# Export both tables to CSV sequentially
+write_lines('"AsymSB Table (alpha in rows R_D2 in columns)"', "parameter_tables.csv")
+asymsb_table <- out_AsymSB_table %>% rownames_to_column("alpha")
+names(asymsb_table)[1] <- ""
+write_csv(asymsb_table, "parameter_tables.csv", append = TRUE, col_names = TRUE)
+
+write_lines("", "parameter_tables.csv", append = TRUE)
+write_lines('"r_DY Table (R_Y2/R_D2 combinations in rows rho/alpha combinations in columns)"', "parameter_tables.csv", append = TRUE)
+rdy_table <- out_r_DY_table %>%
+    round(3) %>%
+    rownames_to_column("R_Y2_R_D2")
+names(rdy_table)[1] <- ""
+write_csv(rdy_table, "parameter_tables.csv", append = TRUE, col_names = TRUE)
