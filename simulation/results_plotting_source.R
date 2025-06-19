@@ -1,6 +1,7 @@
 library(ggplot2)
 library(ggpubr)
 library(cowplot)
+library(purrr)
 library(latex2exp)
 library(xtable)
 library(rlang)
@@ -12,6 +13,8 @@ ideal_order <- c(#"BDML-R2D2",
                  "BDML-LKJ-HP", 
                  "BDML-IW",
                  "BDML-LKJ", 
+                 "BDML-IW-JS-MAT",
+                 "BDML-IW-JS-I",
                  "Linero", 
                  "HCPH", 
                  "Naive", 
@@ -25,6 +28,9 @@ shape_values <- c(19,
                   18, 
                   17, 
                   15, 
+                  #16,
+                  10,
+                  12,
                   1, 
                   2, 
                   0, 
@@ -37,13 +43,15 @@ color_values <- c("firebrick4",
                   "#F8766D",
                   "darkorange2",
                   "orange",
+                  "#00FFFF",      # Neon cyan (light, very bright blue)
+                  "#0055FF",
                   "#00BA38",
-                  "green", 
-                  "#619CFF",
-                  "steelblue4",
+                  "green",
+                  "lightgrey",
+                  "#D946EF",
                   "purple",
                   "#F564E3",
-                  "lightgrey",
+                  "grey",
                   "black")
 
 style_mapping <- tibble(Method = ideal_order, shape = shape_values, color = color_values)
@@ -152,10 +160,18 @@ get_combined_plots_zoom <- function(results,
     zoom_mapping <- plot_mappings %>% 
       filter(unique_Method %in% zoom_in) %>% 
       arrange(factor(unique_Method, levels = zoom_in))
-    # get shapes and colors for the methods in zoom_in
-    extracted_colors <- zoom_mapping$mapped_colors
-    extracted_shapes <- zoom_mapping$mapped_shapes
-    
+  
+    # name the colors & shapes by the method so ggplot matches by name
+    extracted_colors <- setNames(
+      zoom_mapping$mapped_colors,
+      zoom_mapping$unique_Method
+    )
+    extracted_shapes <- setNames(
+      zoom_mapping$mapped_shapes,
+      zoom_mapping$unique_Method
+    )
+
+
     results_filtered <- results %>% 
       filter(Method %in% zoom_in)
     
@@ -183,4 +199,107 @@ get_combined_plots_zoom <- function(results,
     }
 
     return(final_plot)
+}
+
+# ---------------------------------------------------------------------
+#' Generate and save “stacked” R_D2 panels for each (rho, alpha),
+#' using only a specified list of zoom_in methods.
+#'
+#' @param results        data.frame of your combined results
+#' @param datetime_tag   character; subdirectory (and filename) tag,
+#'                       e.g. "20250613-1430" (defaults to current time)
+#' @param save_dir       character; top‐level results directory
+#'                       (defaults to "results")
+#' @param zoom_in        character vector of Methods to include in each panel
+#'                       (defaults to c("BDML-LKJ-HP","BDML-IW-HP","BDML-IW","Linero","Oracle"))
+#' @export
+generate_stacked_plots <- function(results,
+                                   datetime_tag = format(Sys.time(), "%Y%m%d-%H%M"),
+                                   save_dir     = "results",
+                                   zoom_in      = c("BDML-LKJ",
+                                                    "BDML-LKJ-HP",
+                                                    "BDML-IW",
+                                                    "BDML-IW-HP",
+                                                    "BDML-IW-JS-MAT",
+                                                    "BDML-IW-JS-I",
+                                                    "BLRs-baseline",
+                                                    "BLRs-FDML",
+                                                    "BLRs-OLS-oracle")) {
+  # create output folder
+  out_dir <- file.path(save_dir, datetime_tag)
+  if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
+
+  # grid over (rho, alpha)
+  grid_ra <- expand.grid(
+    rho   = unique(results$rho),
+    alpha = unique(results$alpha)
+  )
+  rd2_vals <- unique(results$R_D2)
+
+  for (i in seq_len(nrow(grid_ra))) {
+    rho_i   <- grid_ra$rho[i]
+    alpha_i <- grid_ra$alpha[i]
+
+    # build one “row” per R_D2
+    make_row <- function(r_d2) {
+      subres <- results %>%
+        filter(R_D2   == r_d2,
+               rho    == rho_i,
+               alpha  == alpha_i,
+               Method %in% zoom_in)
+
+      # 3-panel without legend
+      row_plot <- get_combined_plots(subres, save = NULL) +
+        theme(legend.position = "none")
+
+      # label strip “R_D2 = …”
+      label_strip <- ggdraw() +
+        draw_label(
+          paste0("R_D2 = ", r_d2),
+          fontface = "bold", x = 0, hjust = 0, size = 12
+        )
+
+      plot_grid(label_strip, row_plot, ncol = 1,
+                rel_heights = c(0.05, 0.95))
+    }
+
+    # stack them all
+    all_rows    <- purrr::map(rd2_vals, make_row)
+    stacked_rows <- plot_grid(plotlist = all_rows, ncol = 1)
+
+    # extract a shared legend from a dummy coverage plot
+    dummy_sub <- results %>%
+      filter(R_D2   == rd2_vals[1],
+             rho    == rho_i,
+             alpha  == alpha_i,
+             Method %in% zoom_in)
+
+    dummy_cov <- get_individual_plot(dummy_sub, "coverage", "Coverage")$plot +
+      geom_hline(yintercept = 0.95, linetype = "dashed") +
+      theme(legend.position = "bottom",
+            legend.text     = element_text(size = 10))
+
+    shared_legend <- ggpubr::get_legend(dummy_cov)
+
+    # combine panels + legend
+    final_plot <- plot_grid(
+      stacked_rows, shared_legend,
+      ncol        = 1,
+      rel_heights = c(1, 0.08)
+    )
+
+    # save
+    out_name <- paste0("stacked_R_D2_",
+                       datetime_tag,
+                       "_rho_",   rho_i,
+                       "_alpha_", alpha_i,
+                       ".pdf")
+
+    ggsave(
+      filename = file.path(out_dir, out_name),
+      plot     = final_plot,
+      width    = 9,
+      height   = 3.5 * length(rd2_vals)
+    )
+  }
 }

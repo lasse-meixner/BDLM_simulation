@@ -55,6 +55,10 @@ run_simulation_parallel <- function(model_type, n, p, R_Y2, R_D2, rho, alpha, si
         " BDML-IW fits, ",
         sum(sim_settings$model_type == "BDML-IW-HP"),
         " BDML-IW-HP fits, ",
+        sum(sim_settings$model_type == "BDML-IW-JS-MAT"),
+        " BDML-IW-JS-MAT fits, ",
+        sum(sim_settings$model_type == "BDML-IW-JS-I"),
+        " BDML-IW-JS-I fits, ",
         sum(sim_settings$model_type == "BDML-LKJ"),
         " BDML-LKJ fits, ",
         sum(sim_settings$model_type == "BDML-LKJ-HP"), 
@@ -111,12 +115,14 @@ run_simulation_parallel <- function(model_type, n, p, R_Y2, R_D2, rho, alpha, si
                     batch_settings[i, "model_type"],
                     "BDML-LKJ" = sim_iter_bdml_lkj,
                     "BDML-LKJ-HP" = sim_iter_bdml_lkj_hp,
-                    "BDML-R2D2" = sim_iter_bdml_r2d2,
                     "BDML-IW" = sim_iter_bdml_iw,
                     "BDML-IW-HP" = sim_iter_bdml_iw_hp,
+                    "BDML-IW-JS-MAT" = sim_iter_bdml_iw_js_mat,
+                    "BDML-IW-JS-I" = sim_iter_bdml_iw_js_i,
                     "BLRs-baseline"   = sim_iter_BLRs_baseline,
                     "BLRs-FDML"       = sim_iter_BLRs_FDML,
                     "BLRs-OLS-oracle" = sim_iter_BLRs_OLS_oracle,
+                    "BDML-R2D2" = sim_iter_bdml_r2d2,
                     stop("Unknown model type: ", batch_settings[i, "model_type"])
                 )
             
@@ -185,10 +191,11 @@ run_simulation_parallel <- function(model_type, n, p, R_Y2, R_D2, rho, alpha, si
     info(logger, paste("Saved final results to", result_file))
 
     # Log information about failed models
+    simulations_per_model <- nrow(sim_settings) / length(model_type)
     if (length(failed_models) > 0) {
         info(logger, "FITTING SUMMARY: The following models failed:")
         for (model in names(failed_models)) {
-            info(logger, paste("  ", model, ": ", failed_models[model], "failed simulations out of ", simulation_size, "total simulations"))
+            info(logger, paste("  ", model, ": ", failed_models[model], "failed simulations out of ", simulations_per_model, "total simulations"))
         }
     }
 
