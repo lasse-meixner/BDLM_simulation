@@ -43,15 +43,15 @@ color_values <- c("firebrick4",
                   "#F8766D",
                   "darkorange2",
                   "orange",
-                  "black",
-                  "grey", 
+                  "#00FFFF",      # Neon cyan (light, very bright blue)
+                  "#0055FF",
                   "#00BA38",
                   "green",
-                  "#619CFF",
-                  "steelblue4",
+                  "lightgrey",
+                  "#D946EF",
                   "purple",
                   "#F564E3",
-                  "lightgrey",
+                  "grey",
                   "black")
 
 style_mapping <- tibble(Method = ideal_order, shape = shape_values, color = color_values)
