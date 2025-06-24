@@ -8,6 +8,7 @@ if (rstudioapi::isAvailable()) {
 
 library(tidyverse)
 library(mvtnorm)
+library(openxlsx)
 
 # generate_data <- function(n, p, R_Y2, R_D2, rho, alpha) {
 
@@ -54,77 +55,62 @@ library(mvtnorm)
 R_Y2_vals <- c(0, 0.4, 0.8)
 R_D2_vals <- c(0, 0.4, 0.8)
 rho_vals <- c(-0.5, 0, 0.5)
-alpha_vals <- c(1 / 4, 1, 4)
+alpha_vals <- c(1 / 4, 1 / 2, 1)
 
-AsymSB_table <- function(alpha_vals, R_D2_vals) {
-    # Create combinations for AsymSB only
-
-    asym_grid <- expand_grid(
-        alpha = alpha_vals,
-        R_D2 = R_D2_vals
-    ) %>%
-        mutate(AsymSB = alpha * (1 - R_D2))
-
-    # Pivot to create table format
-    asym_table <- asym_grid %>%
-        pivot_wider(
-            names_from = R_D2,
-            values_from = AsymSB
-        ) %>%
-        column_to_rownames("alpha")
-
-    return(asym_table)
-}
-
-# Create and display AsymSB table
-out_AsymSB_table <- AsymSB_table(alpha_vals, R_D2_vals)
-cat("\nAsymSB Table (alpha in rows, R_D2 in columns):\n")
-print(out_AsymSB_table)
-
-r_DY_9x9_table <- function(R_Y2_vals, R_D2_vals, rho_vals, alpha_vals) {
-    # Create all combinations
-    param_grid <- expand_grid(
-        R_Y2 = R_Y2_vals,
-        R_D2 = R_D2_vals,
-        rho = rho_vals,
-        alpha = alpha_vals
+implied_stats <- expand_grid(
+    R_Y2 = R_Y2_vals,
+    R_D2 = R_D2_vals,
+    rho = rho_vals,
+    alpha = alpha_vals
+) %>%
+    mutate(
+        SB = rho * sqrt(R_Y2 * R_D2) / alpha,
+        ES = alpha / sqrt(1 + alpha^2 + 2 * alpha * rho * sqrt(R_Y2 * R_D2)),
+        row_key = paste0(R_Y2, ",", R_D2),
+        col_key = paste0(rho, ",", alpha)
     )
 
-    # Calculate r_DY
-    results <- param_grid %>%
-        mutate(
-            r_DY = alpha^2 / (alpha^2 + 1 + 2 * alpha * rho * sqrt(R_Y2 * R_D2)),
-            row_key = paste0(R_Y2, ",", R_D2),
-            col_key = paste0(rho, ",", alpha)
-        ) %>%
-        select(row_key, col_key, r_DY)
+v_stats <- c("SB", "ES")
 
+# Create workbook
+wb <- createWorkbook()
+
+current_row <- 1
+
+for (v_stat in v_stats) {
     # Pivot to create 9x9 table
-    r_DY_table <- results %>%
+    implied_stats_table <- implied_stats %>%
         pivot_wider(
             names_from = col_key,
-            values_from = r_DY
+            values_from = v_stat,
+            id_cols = row_key
         ) %>%
         column_to_rownames("row_key")
 
-    return(r_DY_table)
+    # Add worksheet if it doesn't exist
+    if (!"implied_stats" %in% names(wb)) {
+        addWorksheet(wb, "implied_stats")
+    }
+
+    # Write header
+    writeData(wb, "implied_stats",
+        paste0(v_stat, " Table (R_Y2/R_D2 combinations in rows, rho/alpha combinations in columns)"),
+        startCol = 1, startRow = current_row
+    )
+    current_row <- current_row + 1
+
+    # Prepare table for writing
+    implied_stats_table <- implied_stats_table %>%
+        round(3) %>%
+        rownames_to_column("R_Y2_R_D2")
+    names(implied_stats_table)[1] <- ""
+
+    # Write table
+    writeData(wb, "implied_stats", implied_stats_table,
+        startCol = 1, startRow = current_row, colNames = TRUE
+    )
+    current_row <- current_row + nrow(implied_stats_table) + 2 # +2 for header and spacing
 }
 
-# Create and display r_DY 9x9 table
-out_r_DY_table <- r_DY_9x9_table(R_Y2_vals, R_D2_vals, rho_vals, alpha_vals)
-cat("\nr_DY 9x9 Table (R_Y2/R_D2 combinations in rows, rho/alpha combinations in columns):\n")
-print(round(out_r_DY_table, 3))
-
-# Export both tables to CSV sequentially
-write_lines('"AsymSB Table (alpha in rows R_D2 in columns)"', "parameter_tables.csv")
-asymsb_table <- out_AsymSB_table %>% rownames_to_column("alpha")
-names(asymsb_table)[1] <- ""
-write_csv(asymsb_table, "parameter_tables.csv", append = TRUE, col_names = TRUE)
-
-write_lines("", "parameter_tables.csv", append = TRUE)
-write_lines('"r_DY Table (R_Y2/R_D2 combinations in rows rho/alpha combinations in columns)"', "parameter_tables.csv", append = TRUE)
-rdy_table <- out_r_DY_table %>%
-    round(3) %>%
-    rownames_to_column("R_Y2_R_D2")
-names(rdy_table)[1] <- ""
-write_csv(rdy_table, "parameter_tables.csv", append = TRUE, col_names = TRUE)
+# Save workbook
+saveWorkbook(wb, "implied_stats.xlsx", overwrite = TRUE)
