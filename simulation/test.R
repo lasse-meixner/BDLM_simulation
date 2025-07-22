@@ -17,9 +17,9 @@ results <- run_simulation_parallel(
   model_type = c("BDML-IW-JS-MAT", "BLRs-baseline"),
   n = 200,
   p = 100,
-  R_Y2 = 0.9,
-  R_D2 = 0.9,
-  rho = c(0.5, 0.9),
+  R_Y2 = c(0.05, 0.5, 0.95),
+  R_D2 = c(0.05, 0.5, 0.95),
+  rho = c(0.05, 0.5, 0.95),
   alpha = 0.25,
   simulation_size = 100, # NOTE: low testing rep
   batch_size = 100,
@@ -53,4 +53,4 @@ rmse_wide <- rmse_df %>%
   pivot_wider(names_from = Method, values_from = RMSE)
 
 # Find cases where linero's RMSE is larger than BDML's
-print(rmse_wide)
+print(rmse_wide, n = Inf)
